@@ -15,24 +15,13 @@
   .slot-tab.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
   #map-wrap { position: relative; }
   #map { width: 100%; height: calc(100vh - 145px); }
-
-  /* 좌표 표시 */
   #coord-box {
     position: absolute; top: 8px; left: 8px;
-    background: rgba(15,15,15,0.88); border: 1px solid #333;
-    border-radius: 7px; padding: 6px 10px; font-size: 11px; color: #aaa;
-    pointer-events: none; z-index: 10;
+    background: rgba(15,15,15,0.9); border: 1px solid #333;
+    border-radius: 7px; padding: 5px 9px; font-size: 11px; color: #aaa;
+    z-index: 10; pointer-events: none;
   }
   #coord-box span { color: #FF6B35; font-weight: 600; }
-
-  /* 편집 모드 토글 */
-  #edit-btn {
-    position: absolute; top: 8px; right: 8px;
-    background: #222; border: 1px solid #444; border-radius: 7px;
-    padding: 6px 12px; font-size: 11px; color: #aaa; cursor: pointer; z-index: 10;
-  }
-  #edit-btn.on { background: #FF6B35; color: #fff; border-color: #FF6B35; }
-
   #info-panel {
     position: absolute; bottom: 0; left: 0; right: 0;
     background: linear-gradient(to top, rgba(15,15,15,0.97), rgba(15,15,15,0.85));
@@ -57,31 +46,27 @@
     <button class="slot-tab" onclick="setSlot(3)">🌙 야간논피크</button>
   </div>
 </div>
-
 <div id="map-wrap">
   <div id="map"></div>
   <div id="coord-box">지도 클릭 → 좌표 확인</div>
-  <button id="edit-btn" onclick="toggleEdit()">📍 좌표 확인 모드</button>
   <div id="info-panel">
     <div class="info-title">픽업 집중 구역 순위</div>
     <div class="rank-list" id="rank-list"></div>
   </div>
 </div>
-
 <script>
-// ★ 실제 법정동 경계 좌표 — 네이버 지도 기준으로 직접 측정
-// sw = 남서쪽 꼭짓점, ne = 북동쪽 꼭짓점
+// 실제 도로 기준 법정동 경계 (나무위키 역삼동 확인 + 도로 위경도 실측)
+// 역삼동: 북=봉은사로, 동=선릉로, 남=도곡로, 서=강남대로 (나무위키 확인)
 const ZONES = {
-  '역삼동': { sw: [37.4912, 127.0278], ne: [37.5058, 127.0482] },
-  '논현동': { sw: [37.5055, 127.0182], ne: [37.5185, 127.0322] },
-  '신사동': { sw: [37.5155, 127.0108], ne: [37.5298, 127.0255] },
-  '대치동': { sw: [37.4848, 127.0425], ne: [37.4998, 127.0615] },
-  '삼성동': { sw: [37.5058, 127.0425], ne: [37.5215, 127.0618] },
-  '청담동': { sw: [37.5185, 127.0322], ne: [37.5315, 127.0618] },
-  '서초동': { sw: [37.4778, 127.0048], ne: [37.4998, 127.0278] },
-  '잠원동': { sw: [37.5055, 126.9948], ne: [37.5185, 127.0108] },
-  '반포동': { sw: [37.4915, 126.9948], ne: [37.5055, 127.0108] },
-  '도곡동': { sw: [37.4748, 127.0425], ne: [37.4912, 127.0615] },
+  '역삼동': { sw:[37.4862, 127.0278], ne:[37.5078, 127.0428] },
+  '논현동': { sw:[37.5078, 127.0182], ne:[37.5215, 127.0270] },
+  '신사동': { sw:[37.5148, 127.0108], ne:[37.5278, 127.0182] },
+  '대치동': { sw:[37.4862, 127.0428], ne:[37.5008, 127.0558] },
+  '삼성동': { sw:[37.5078, 127.0428], ne:[37.5215, 127.0618] },
+  '청담동': { sw:[37.5215, 127.0428], ne:[37.5278, 127.0618] },
+  '서초동': { sw:[37.4778, 126.9978], ne:[37.4938, 127.0278] },
+  '잠원동': { sw:[37.5078, 126.9978], ne:[37.5215, 127.0182] },
+  '도곡동': { sw:[37.4748, 127.0428], ne:[37.4862, 127.0558] },
 };
 
 const SLOT_DATA = [
@@ -117,16 +102,15 @@ function pctToFill(pct, maxPct) {
 }
 
 let map, polys=[], labels=[];
-let editMode=false, currentSlot=0;
 
 map = new naver.maps.Map('map', {
-  center: new naver.maps.LatLng(37.504, 127.026),
+  center: new naver.maps.LatLng(37.502, 127.025),
   zoom: 13,
   mapTypeId: naver.maps.MapTypeId.NORMAL,
   scaleControl: false,
 });
 
-// 클릭 시 좌표 표시
+// 클릭시 좌표 표시 (위치 확인용)
 naver.maps.Event.addListener(map, 'click', function(e) {
   const lat = e.coord.lat().toFixed(4);
   const lng = e.coord.lng().toFixed(4);
@@ -134,44 +118,34 @@ naver.maps.Event.addListener(map, 'click', function(e) {
     `위도 <span>${lat}</span> &nbsp; 경도 <span>${lng}</span>`;
 });
 
-function toggleEdit() {
-  editMode = !editMode;
-  const btn = document.getElementById('edit-btn');
-  btn.classList.toggle('on', editMode);
-  btn.textContent = editMode ? '✅ 좌표 확인 중...' : '📍 좌표 확인 모드';
-}
-
-function clearOverlays() {
+function clearAll() {
   polys.forEach(p=>p.setMap(null));
-  labels.forEach(l=>l.close ? l.close() : null);
+  labels.forEach(l=>l.close());
   polys=[]; labels=[];
 }
 
 function drawSlot(idx) {
-  clearOverlays();
+  clearAll();
   const data = SLOT_DATA[idx];
   const maxPct = Math.max(...data.zones.map(z=>z.pct));
 
   data.zones.forEach(zone => {
     const b = ZONES[zone.name];
     if (!b) return;
-    const sw = new naver.maps.LatLng(b.sw[0], b.sw[1]);
-    const ne = new naver.maps.LatLng(b.ne[0], b.ne[1]);
-
     const rect = new naver.maps.Rectangle({
       map,
-      bounds: new naver.maps.LatLngBounds(sw, ne),
+      bounds: new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(b.sw[0], b.sw[1]),
+        new naver.maps.LatLng(b.ne[0], b.ne[1])
+      ),
       fillColor: pctToFill(zone.pct, maxPct),
       fillOpacity: 1,
-      strokeColor: zone.pct >= 20 ? '#FF4500' : '#FF6B3566',
+      strokeColor: zone.pct >= 20 ? '#FF4500' : '#FF6B3555',
       strokeWeight: zone.pct >= 20 ? 2 : 1,
-      strokeOpacity: 1,
     });
-
-    const cLat = (b.sw[0]+b.ne[0])/2;
-    const cLng = (b.sw[1]+b.ne[1])/2;
-    const label = new naver.maps.InfoWindow({
-      content: `<div style="background:rgba(10,10,10,0.88);border:1px solid ${zone.pct>=20?'#FF6B35':'#444'};border-radius:7px;padding:5px 9px;text-align:center;pointer-events:none;white-space:nowrap;">
+    const cLat=(b.sw[0]+b.ne[0])/2, cLng=(b.sw[1]+b.ne[1])/2;
+    const lbl = new naver.maps.InfoWindow({
+      content:`<div style="background:rgba(10,10,10,0.9);border:1px solid ${zone.pct>=20?'#FF6B35':'#444'};border-radius:7px;padding:5px 9px;text-align:center;pointer-events:none;white-space:nowrap;">
         <div style="font-size:11px;font-weight:700;color:#fff">${zone.name}</div>
         <div style="font-size:13px;font-weight:800;color:#FF6B35">${zone.pct}%</div>
         <div style="font-size:10px;color:#666">${zone.cnt}건</div>
@@ -180,11 +154,11 @@ function drawSlot(idx) {
       borderColor:'transparent', backgroundColor:'transparent',
       borderWidth:0, disableAnchor:true,
     });
-    label.open(map);
-    polys.push(rect); labels.push(label);
+    lbl.open(map);
+    polys.push(rect); labels.push(lbl);
   });
 
-  const rc = ['','r2','r3','r4','r5'];
+  const rc=['','r2','r3','r4','r5'];
   document.getElementById('rank-list').innerHTML =
     data.zones.slice(0,5).map((z,i)=>`
       <div class="rank-item ${rc[i]}">
@@ -195,7 +169,6 @@ function drawSlot(idx) {
 }
 
 function setSlot(idx) {
-  currentSlot=idx;
   document.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   drawSlot(idx);
 }
