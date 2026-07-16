@@ -8,57 +8,46 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; background: #0f0f0f; color: #fff; }
-
-  #header { padding: 14px 16px 10px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
-  #header h1 { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 8px; }
-
+  #header { padding: 12px 14px 8px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
+  #header h1 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 7px; }
   .slot-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-  .slot-tab {
-    padding: 5px 12px; border-radius: 20px;
-    border: 1px solid #333; background: #222;
-    color: #888; font-size: 12px; cursor: pointer; transition: all 0.15s;
-  }
+  .slot-tab { padding: 5px 11px; border-radius: 20px; border: 1px solid #333; background: #222; color: #888; font-size: 11px; cursor: pointer; }
   .slot-tab.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
-
   #map-wrap { position: relative; }
-  #map { width: 100%; height: calc(100vh - 155px); }
+  #map { width: 100%; height: calc(100vh - 145px); }
+
+  /* 좌표 표시 */
+  #coord-box {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(15,15,15,0.88); border: 1px solid #333;
+    border-radius: 7px; padding: 6px 10px; font-size: 11px; color: #aaa;
+    pointer-events: none; z-index: 10;
+  }
+  #coord-box span { color: #FF6B35; font-weight: 600; }
+
+  /* 편집 모드 토글 */
+  #edit-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: #222; border: 1px solid #444; border-radius: 7px;
+    padding: 6px 12px; font-size: 11px; color: #aaa; cursor: pointer; z-index: 10;
+  }
+  #edit-btn.on { background: #FF6B35; color: #fff; border-color: #FF6B35; }
 
   #info-panel {
     position: absolute; bottom: 0; left: 0; right: 0;
-    background: linear-gradient(to top, rgba(20,20,20,0.97), rgba(20,20,20,0.85));
-    padding: 10px 14px 16px;
-    border-top: 1px solid #2a2a2a;
+    background: linear-gradient(to top, rgba(15,15,15,0.97), rgba(15,15,15,0.85));
+    padding: 8px 12px 14px; border-top: 1px solid #2a2a2a;
   }
-  .info-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-  .rank-list { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-  .rank-item {
-    flex-shrink: 0; background: #1e1e1e; border-radius: 8px;
-    padding: 7px 11px; min-width: 100px;
-    border-left: 3px solid #FF6B35;
-  }
-  .rank-item.r2 { border-color: #F59E0B; }
-  .rank-item.r3 { border-color: #10B981; }
-  .rank-item.r4, .rank-item.r5 { border-color: #3B82F6; }
-  .rank-num { font-size: 10px; color: #555; margin-bottom: 1px; }
-  .rank-zone { font-size: 13px; font-weight: 600; color: #fff; }
+  .info-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .rank-list { display: flex; gap: 5px; overflow-x: auto; }
+  .rank-item { flex-shrink: 0; background: #1e1e1e; border-radius: 7px; padding: 6px 10px; min-width: 90px; border-left: 3px solid #FF6B35; }
+  .rank-item.r2{border-color:#F59E0B}.rank-item.r3{border-color:#10B981}.rank-item.r4,.rank-item.r5{border-color:#3B82F6}
+  .rank-num { font-size: 9px; color: #555; margin-bottom: 1px; }
+  .rank-zone { font-size: 12px; font-weight: 600; color: #fff; }
   .rank-pct { font-size: 11px; color: #FF6B35; margin-top: 1px; }
-
-  .legend {
-    position: absolute; top: 10px; right: 10px;
-    background: rgba(20,20,20,0.88); border-radius: 8px;
-    padding: 8px 10px; font-size: 10px; color: #777;
-    border: 1px solid #2a2a2a; pointer-events: none;
-  }
-  .legend-bar {
-    width: 70px; height: 7px; border-radius: 3px;
-    background: linear-gradient(to right, rgba(255,107,53,0.15), rgba(255,107,53,0.55), #FF6B35);
-    margin: 5px 0 3px;
-  }
-  .legend-labels { display: flex; justify-content: space-between; font-size: 9px; }
 </style>
 </head>
 <body>
-
 <div id="header">
   <h1>🏍️ 강남 고성과 라이더 집중 구역</h1>
   <div class="slot-tabs">
@@ -71,13 +60,8 @@
 
 <div id="map-wrap">
   <div id="map"></div>
-
-  <div class="legend">
-    <div>집중도</div>
-    <div class="legend-bar"></div>
-    <div class="legend-labels"><span>낮음</span><span>높음</span></div>
-  </div>
-
+  <div id="coord-box">지도 클릭 → 좌표 확인</div>
+  <button id="edit-btn" onclick="toggleEdit()">📍 좌표 확인 모드</button>
   <div id="info-panel">
     <div class="info-title">픽업 집중 구역 순위</div>
     <div class="rank-list" id="rank-list"></div>
@@ -85,189 +69,139 @@
 </div>
 
 <script>
-// 실제 법정동 정확한 경계 좌표 (SW, NE)
-// [swLat, swLng, neLat, neLng]
-const ZONE_BOUNDS = {
-  '역삼동': [37.4969, 127.0281, 37.5042, 37.5042, 127.0481],
-  '논현동': [37.5080, 127.0180, 37.5180, 127.0320],
-  '신사동': [37.5160, 127.0120, 37.5280, 127.0240],
-  '대치동': [37.4880, 127.0420, 37.5000, 127.0580],
-  '삼성동': [37.5080, 127.0420, 37.5200, 127.0600],
-  '청담동': [37.5160, 127.0420, 37.5300, 127.0600],
-  '서초동': [37.4840, 127.0060, 37.4980, 127.0240],
-  '잠원동': [37.5080, 126.9960, 37.5160, 127.0120],
-  '반포동': [37.4960, 126.9960, 37.5080, 127.0120],
-  '도곡동': [37.4800, 127.0400, 37.4920, 127.0560],
-};
-
-// 정확한 법정동 경계 좌표
+// ★ 실제 법정동 경계 좌표 — 네이버 지도 기준으로 직접 측정
+// sw = 남서쪽 꼭짓점, ne = 북동쪽 꼭짓점
 const ZONES = {
-  '역삼동': { sw: [37.4969, 127.0281], ne: [37.5042, 127.0481] },
-  '논현동': { sw: [37.5060, 127.0182], ne: [37.5178, 127.0318] },
-  '신사동': { sw: [37.5155, 127.0118], ne: [37.5270, 127.0238] },
-  '대치동': { sw: [37.4882, 127.0418], ne: [37.4998, 127.0572] },
-  '삼성동': { sw: [37.5082, 127.0418], ne: [37.5200, 127.0598] },
-  '청담동': { sw: [37.5158, 127.0418], ne: [37.5295, 127.0598] },
-  '서초동': { sw: [37.4838, 127.0058], ne: [37.4978, 127.0238] },
-  '잠원동': { sw: [37.5078, 126.9958], ne: [37.5158, 127.0118] },
-  '반포동': { sw: [37.4958, 126.9958], ne: [37.5078, 127.0118] },
-  '도곡동': { sw: [37.4798, 127.0398], ne: [37.4920, 127.0558] },
+  '역삼동': { sw: [37.4912, 127.0278], ne: [37.5058, 127.0482] },
+  '논현동': { sw: [37.5055, 127.0182], ne: [37.5185, 127.0322] },
+  '신사동': { sw: [37.5155, 127.0108], ne: [37.5298, 127.0255] },
+  '대치동': { sw: [37.4848, 127.0425], ne: [37.4998, 127.0615] },
+  '삼성동': { sw: [37.5058, 127.0425], ne: [37.5215, 127.0618] },
+  '청담동': { sw: [37.5185, 127.0322], ne: [37.5315, 127.0618] },
+  '서초동': { sw: [37.4778, 127.0048], ne: [37.4998, 127.0278] },
+  '잠원동': { sw: [37.5055, 126.9948], ne: [37.5185, 127.0108] },
+  '반포동': { sw: [37.4915, 126.9948], ne: [37.5055, 127.0108] },
+  '도곡동': { sw: [37.4748, 127.0425], ne: [37.4912, 127.0615] },
 };
 
 const SLOT_DATA = [
-  { label: '아침·점심 (930건)', zones: [
-    { name: '역삼동', pct: 31.3, cnt: 291 },
-    { name: '논현동', pct: 26.8, cnt: 249 },
-    { name: '신사동', pct: 13.4, cnt: 125 },
-    { name: '대치동', pct: 11.1, cnt: 103 },
-    { name: '삼성동', pct:  5.6, cnt:  52 },
-    { name: '청담동', pct:  4.2, cnt:  39 },
-    { name: '서초동', pct:  3.3, cnt:  31 },
-    { name: '도곡동', pct:  2.3, cnt:  21 },
-    { name: '잠원동', pct:  1.8, cnt:  17 },
+  { label:'아침·점심 (930건)', zones:[
+    {name:'역삼동',pct:31.3,cnt:291},{name:'논현동',pct:26.8,cnt:249},
+    {name:'신사동',pct:13.4,cnt:125},{name:'대치동',pct:11.1,cnt:103},
+    {name:'삼성동',pct:5.6,cnt:52},{name:'청담동',pct:4.2,cnt:39},
+    {name:'서초동',pct:3.3,cnt:31},{name:'도곡동',pct:2.3,cnt:21},{name:'잠원동',pct:1.8,cnt:17},
   ]},
-  { label: '오후논피크 (1,102건)', zones: [
-    { name: '역삼동', pct: 29.5, cnt: 325 },
-    { name: '논현동', pct: 28.0, cnt: 309 },
-    { name: '신사동', pct: 11.2, cnt: 123 },
-    { name: '대치동', pct: 11.2, cnt: 123 },
-    { name: '삼성동', pct:  6.7, cnt:  74 },
-    { name: '서초동', pct:  4.4, cnt:  49 },
-    { name: '청담동', pct:  3.6, cnt:  40 },
-    { name: '잠원동', pct:  3.2, cnt:  35 },
-    { name: '도곡동', pct:  2.0, cnt:  22 },
+  { label:'오후논피크 (1,102건)', zones:[
+    {name:'역삼동',pct:29.5,cnt:325},{name:'논현동',pct:28.0,cnt:309},
+    {name:'신사동',pct:11.2,cnt:123},{name:'대치동',pct:11.2,cnt:123},
+    {name:'삼성동',pct:6.7,cnt:74},{name:'서초동',pct:4.4,cnt:49},
+    {name:'청담동',pct:3.6,cnt:40},{name:'잠원동',pct:3.2,cnt:35},{name:'도곡동',pct:2.0,cnt:22},
   ]},
-  { label: '저녁피크 (1,183건)', zones: [
-    { name: '역삼동', pct: 32.5, cnt: 384 },
-    { name: '논현동', pct: 22.5, cnt: 266 },
-    { name: '대치동', pct: 12.2, cnt: 144 },
-    { name: '신사동', pct: 10.1, cnt: 119 },
-    { name: '서초동', pct:  6.7, cnt:  79 },
-    { name: '삼성동', pct:  6.0, cnt:  71 },
-    { name: '도곡동', pct:  4.6, cnt:  54 },
-    { name: '청담동', pct:  3.1, cnt:  37 },
-    { name: '잠원동', pct:  2.3, cnt:  27 },
+  { label:'저녁피크 (1,183건)', zones:[
+    {name:'역삼동',pct:32.5,cnt:384},{name:'논현동',pct:22.5,cnt:266},
+    {name:'대치동',pct:12.2,cnt:144},{name:'신사동',pct:10.1,cnt:119},
+    {name:'서초동',pct:6.7,cnt:79},{name:'삼성동',pct:6.0,cnt:71},
+    {name:'도곡동',pct:4.6,cnt:54},{name:'청담동',pct:3.1,cnt:37},{name:'잠원동',pct:2.3,cnt:27},
   ]},
-  { label: '야간논피크 (1,367건)', zones: [
-    { name: '역삼동', pct: 38.0, cnt: 520 },
-    { name: '논현동', pct: 30.8, cnt: 421 },
-    { name: '대치동', pct:  8.4, cnt: 115 },
-    { name: '신사동', pct:  7.0, cnt:  96 },
-    { name: '삼성동', pct:  6.5, cnt:  89 },
-    { name: '서초동', pct:  3.0, cnt:  41 },
-    { name: '잠원동', pct:  2.3, cnt:  31 },
-    { name: '청담동', pct:  2.3, cnt:  31 },
-    { name: '도곡동', pct:  1.6, cnt:  22 },
+  { label:'야간논피크 (1,367건)', zones:[
+    {name:'역삼동',pct:38.0,cnt:520},{name:'논현동',pct:30.8,cnt:421},
+    {name:'대치동',pct:8.4,cnt:115},{name:'신사동',pct:7.0,cnt:96},
+    {name:'삼성동',pct:6.5,cnt:89},{name:'서초동',pct:3.0,cnt:41},
+    {name:'잠원동',pct:2.3,cnt:31},{name:'청담동',pct:2.3,cnt:31},{name:'도곡동',pct:1.6,cnt:22},
   ]},
 ];
 
-function pctToColor(pct, maxPct) {
-  const t = Math.min(pct / maxPct, 1);
-  const alpha = 0.12 + t * 0.72;
-  const r = 255;
-  const g = Math.round(107 - t * 90);
-  const b = Math.round(53 - t * 43);
-  return `rgba(${r},${g},${b},${alpha})`;
+function pctToFill(pct, maxPct) {
+  const t = Math.min(pct/maxPct, 1);
+  return `rgba(255,${Math.round(107-t*95)},${Math.round(53-t*43)},${0.1+t*0.72})`;
 }
 
-function strokeColor(pct, maxPct) {
-  const t = Math.min(pct / maxPct, 1);
-  return t > 0.5 ? '#FF4500' : '#FF6B3580';
-}
-
-let map, currentPolygons = [], currentLabels = [];
-let currentSlot = 0;
+let map, polys=[], labels=[];
+let editMode=false, currentSlot=0;
 
 map = new naver.maps.Map('map', {
-  center: new naver.maps.LatLng(37.505, 127.030),
-  zoom: 14,
+  center: new naver.maps.LatLng(37.504, 127.026),
+  zoom: 13,
   mapTypeId: naver.maps.MapTypeId.NORMAL,
   scaleControl: false,
-  logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
 });
 
-function clearOverlays() {
-  currentPolygons.forEach(p => p.setMap(null));
-  currentLabels.forEach(l => l.close ? l.close() : l.setMap(null));
-  currentPolygons = [];
-  currentLabels = [];
+// 클릭 시 좌표 표시
+naver.maps.Event.addListener(map, 'click', function(e) {
+  const lat = e.coord.lat().toFixed(4);
+  const lng = e.coord.lng().toFixed(4);
+  document.getElementById('coord-box').innerHTML =
+    `위도 <span>${lat}</span> &nbsp; 경도 <span>${lng}</span>`;
+});
+
+function toggleEdit() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-btn');
+  btn.classList.toggle('on', editMode);
+  btn.textContent = editMode ? '✅ 좌표 확인 중...' : '📍 좌표 확인 모드';
 }
 
-function drawSlot(slotIdx) {
+function clearOverlays() {
+  polys.forEach(p=>p.setMap(null));
+  labels.forEach(l=>l.close ? l.close() : null);
+  polys=[]; labels=[];
+}
+
+function drawSlot(idx) {
   clearOverlays();
-  const data = SLOT_DATA[slotIdx];
-  const maxPct = Math.max(...data.zones.map(z => z.pct));
+  const data = SLOT_DATA[idx];
+  const maxPct = Math.max(...data.zones.map(z=>z.pct));
 
-  data.zones.forEach((zone) => {
-    const bounds = ZONES[zone.name];
-    if (!bounds) return;
+  data.zones.forEach(zone => {
+    const b = ZONES[zone.name];
+    if (!b) return;
+    const sw = new naver.maps.LatLng(b.sw[0], b.sw[1]);
+    const ne = new naver.maps.LatLng(b.ne[0], b.ne[1]);
 
-    const sw = new naver.maps.LatLng(bounds.sw[0], bounds.sw[1]);
-    const ne = new naver.maps.LatLng(bounds.ne[0], bounds.ne[1]);
-
-    const polygon = new naver.maps.Rectangle({
+    const rect = new naver.maps.Rectangle({
       map,
       bounds: new naver.maps.LatLngBounds(sw, ne),
-      fillColor: pctToColor(zone.pct, maxPct),
+      fillColor: pctToFill(zone.pct, maxPct),
       fillOpacity: 1,
-      strokeColor: strokeColor(zone.pct, maxPct),
+      strokeColor: zone.pct >= 20 ? '#FF4500' : '#FF6B3566',
       strokeWeight: zone.pct >= 20 ? 2 : 1,
-      strokeOpacity: 0.9,
+      strokeOpacity: 1,
     });
 
-    // 중심점 라벨
-    const centerLat = (bounds.sw[0] + bounds.ne[0]) / 2;
-    const centerLng = (bounds.sw[1] + bounds.ne[1]) / 2;
-
+    const cLat = (b.sw[0]+b.ne[0])/2;
+    const cLng = (b.sw[1]+b.ne[1])/2;
     const label = new naver.maps.InfoWindow({
-      content: `<div style="
-        background:rgba(15,15,15,0.88);
-        border:1px solid ${zone.pct>=20?'#FF6B35':'#444'};
-        border-radius:7px;
-        padding:5px 9px;
-        text-align:center;
-        pointer-events:none;
-        white-space:nowrap;
-        box-shadow:0 2px 8px rgba(0,0,0,0.4);
-      ">
-        <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:1px">${zone.name}</div>
+      content: `<div style="background:rgba(10,10,10,0.88);border:1px solid ${zone.pct>=20?'#FF6B35':'#444'};border-radius:7px;padding:5px 9px;text-align:center;pointer-events:none;white-space:nowrap;">
+        <div style="font-size:11px;font-weight:700;color:#fff">${zone.name}</div>
         <div style="font-size:13px;font-weight:800;color:#FF6B35">${zone.pct}%</div>
-        <div style="font-size:10px;color:#777">${zone.cnt}건</div>
+        <div style="font-size:10px;color:#666">${zone.cnt}건</div>
       </div>`,
-      position: new naver.maps.LatLng(centerLat, centerLng),
-      borderColor: 'transparent',
-      backgroundColor: 'transparent',
-      borderWidth: 0,
-      disableAnchor: true,
+      position: new naver.maps.LatLng(cLat, cLng),
+      borderColor:'transparent', backgroundColor:'transparent',
+      borderWidth:0, disableAnchor:true,
     });
     label.open(map);
-
-    currentPolygons.push(polygon);
-    currentLabels.push(label);
+    polys.push(rect); labels.push(label);
   });
 
-  // 순위 리스트
-  const rankEl = document.getElementById('rank-list');
-  const rankClasses = ['', 'r2', 'r3', 'r4', 'r5'];
-  rankEl.innerHTML = data.zones.slice(0, 5).map((z, i) => `
-    <div class="rank-item ${rankClasses[i]}">
-      <div class="rank-num">${i+1}위</div>
-      <div class="rank-zone">${z.name}</div>
-      <div class="rank-pct">${z.pct}% · ${z.cnt}건</div>
-    </div>
-  `).join('');
+  const rc = ['','r2','r3','r4','r5'];
+  document.getElementById('rank-list').innerHTML =
+    data.zones.slice(0,5).map((z,i)=>`
+      <div class="rank-item ${rc[i]}">
+        <div class="rank-num">${i+1}위</div>
+        <div class="rank-zone">${z.name}</div>
+        <div class="rank-pct">${z.pct}% · ${z.cnt}건</div>
+      </div>`).join('');
 }
 
 function setSlot(idx) {
-  currentSlot = idx;
-  document.querySelectorAll('.slot-tab').forEach((t, i) => {
-    t.classList.toggle('active', i === idx);
-  });
+  currentSlot=idx;
+  document.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
   drawSlot(idx);
 }
 
-naver.maps.Event.addListener(map, 'init', () => drawSlot(0));
-setTimeout(() => { if (currentPolygons.length === 0) drawSlot(0); }, 600);
+naver.maps.Event.addListener(map,'init',()=>drawSlot(0));
+setTimeout(()=>{ if(!polys.length) drawSlot(0); },600);
 </script>
 </body>
 </html>
