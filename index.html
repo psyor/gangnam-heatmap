@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강남 고성과 라이더 히트맵</title>
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=buobcenkyk"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; background: #0f0f0f; color: #fff; }
+
+  #header { padding: 16px 20px 12px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; }
+  #header h1 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 10px; }
+
+  .slot-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .slot-tab {
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid #333; background: #222;
+    color: #888; font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .slot-tab.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
+
+  #map { width: 100%; height: calc(100vh - 160px); }
+
+  #info-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, #1a1a1a, rgba(26,26,26,0.95));
+    padding: 12px 16px 20px;
+    border-top: 1px solid #2a2a2a;
+  }
+  .info-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .rank-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .rank-item {
+    flex-shrink: 0; background: #222; border-radius: 8px;
+    padding: 8px 12px; min-width: 120px;
+    border-left: 3px solid #FF6B35;
+  }
+  .rank-item.rank-1 { border-color: #FF6B35; }
+  .rank-item.rank-2 { border-color: #F59E0B; }
+  .rank-item.rank-3 { border-color: #10B981; }
+  .rank-num { font-size: 10px; color: #666; margin-bottom: 2px; }
+  .rank-zone { font-size: 13px; font-weight: 600; color: #fff; }
+  .rank-pct { font-size: 12px; color: #FF6B35; margin-top: 2px; }
+
+  .legend {
+    position: absolute; top: 70px; right: 12px;
+    background: rgba(26,26,26,0.9); border-radius: 8px;
+    padding: 10px 12px; font-size: 11px; color: #888;
+    border: 1px solid #2a2a2a;
+  }
+  .legend-bar {
+    width: 80px; height: 8px; border-radius: 4px;
+    background: linear-gradient(to right, rgba(255,107,53,0.2), rgba(255,107,53,0.6), #FF6B35);
+    margin: 6px 0 4px;
+  }
+  .legend-labels { display: flex; justify-content: space-between; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🏍️ 강남 고성과 라이더 집중 구역</h1>
+  <div class="slot-tabs">
+    <button class="slot-tab active" onclick="setSlot(0)">☀️ 아침·점심</button>
+    <button class="slot-tab" onclick="setSlot(1)">🌤️ 오후논피크</button>
+    <button class="slot-tab" onclick="setSlot(2)">🌆 저녁피크</button>
+    <button class="slot-tab" onclick="setSlot(3)">🌙 야간논피크</button>
+  </div>
+</div>
+
+<div style="position:relative;">
+  <div id="map"></div>
+
+  <div class="legend">
+    <div>집중도</div>
+    <div class="legend-bar"></div>
+    <div class="legend-labels"><span>낮음</span><span>높음</span></div>
+  </div>
+
+  <div id="info-panel">
+    <div class="info-title">픽업 집중 구역 순위</div>
+    <div class="rank-list" id="rank-list"></div>
+  </div>
+</div>
+
+<script>
+// 시간대별 구역 데이터 (실제 분석 결과)
+const SLOT_DATA = [
+  { label: '아침·점심 (930건)', zones: [
+    { name: '역삼동', pct: 31.3, cnt: 291, bounds: [[37.497, 127.027], [37.504, 127.043]] },
+    { name: '논현동', pct: 26.8, cnt: 249, bounds: [[37.508, 127.018], [37.516, 127.030]] },
+    { name: '신사동', pct: 13.4, cnt: 125, bounds: [[37.516, 127.012], [37.526, 127.022]] },
+    { name: '대치동', pct: 11.1, cnt: 103, bounds: [[37.490, 127.043], [37.498, 127.057]] },
+    { name: '삼성동', pct:  5.6, cnt:  52, bounds: [[37.508, 127.043], [37.516, 127.057]] },
+    { name: '청담동', pct:  4.2, cnt:  39, bounds: [[37.516, 127.043], [37.528, 127.057]] },
+    { name: '서초동', pct:  3.3, cnt:  31, bounds: [[37.490, 127.012], [37.498, 127.022]] },
+    { name: '도곡동', pct:  2.3, cnt:  21, bounds: [[37.482, 127.043], [37.490, 127.057]] },
+    { name: '잠원동', pct:  1.8, cnt:  17, bounds: [[37.504, 127.004], [37.512, 127.016]] },
+  ]},
+  { label: '오후논피크 (1,102건)', zones: [
+    { name: '역삼동', pct: 29.5, cnt: 325, bounds: [[37.497, 127.027], [37.504, 127.043]] },
+    { name: '논현동', pct: 28.0, cnt: 309, bounds: [[37.508, 127.018], [37.516, 127.030]] },
+    { name: '신사동', pct: 11.2, cnt: 123, bounds: [[37.516, 127.012], [37.526, 127.022]] },
+    { name: '대치동', pct: 11.2, cnt: 123, bounds: [[37.490, 127.043], [37.498, 127.057]] },
+    { name: '삼성동', pct:  6.7, cnt:  74, bounds: [[37.508, 127.043], [37.516, 127.057]] },
+    { name: '서초동', pct:  4.4, cnt:  49, bounds: [[37.490, 127.012], [37.498, 127.022]] },
+    { name: '청담동', pct:  3.6, cnt:  40, bounds: [[37.516, 127.043], [37.528, 127.057]] },
+    { name: '잠원동', pct:  3.2, cnt:  35, bounds: [[37.504, 127.004], [37.512, 127.016]] },
+    { name: '도곡동', pct:  2.0, cnt:  22, bounds: [[37.482, 127.043], [37.490, 127.057]] },
+  ]},
+  { label: '저녁피크 (1,183건)', zones: [
+    { name: '역삼동', pct: 32.5, cnt: 384, bounds: [[37.497, 127.027], [37.504, 127.043]] },
+    { name: '논현동', pct: 22.5, cnt: 266, bounds: [[37.508, 127.018], [37.516, 127.030]] },
+    { name: '대치동', pct: 12.2, cnt: 144, bounds: [[37.490, 127.043], [37.498, 127.057]] },
+    { name: '신사동', pct: 10.1, cnt: 119, bounds: [[37.516, 127.012], [37.526, 127.022]] },
+    { name: '서초동', pct:  6.7, cnt:  79, bounds: [[37.490, 127.012], [37.498, 127.022]] },
+    { name: '삼성동', pct:  6.0, cnt:  71, bounds: [[37.508, 127.043], [37.516, 127.057]] },
+    { name: '도곡동', pct:  4.6, cnt:  54, bounds: [[37.482, 127.043], [37.490, 127.057]] },
+    { name: '청담동', pct:  3.1, cnt:  37, bounds: [[37.516, 127.043], [37.528, 127.057]] },
+    { name: '잠원동', pct:  2.3, cnt:  27, bounds: [[37.504, 127.004], [37.512, 127.016]] },
+  ]},
+  { label: '야간논피크 (1,367건)', zones: [
+    { name: '역삼동', pct: 38.0, cnt: 520, bounds: [[37.497, 127.027], [37.504, 127.043]] },
+    { name: '논현동', pct: 30.8, cnt: 421, bounds: [[37.508, 127.018], [37.516, 127.030]] },
+    { name: '대치동', pct:  8.4, cnt: 115, bounds: [[37.490, 127.043], [37.498, 127.057]] },
+    { name: '신사동', pct:  7.0, cnt:  96, bounds: [[37.516, 127.012], [37.526, 127.022]] },
+    { name: '삼성동', pct:  6.5, cnt:  89, bounds: [[37.508, 127.043], [37.516, 127.057]] },
+    { name: '서초동', pct:  3.0, cnt:  41, bounds: [[37.490, 127.012], [37.498, 127.022]] },
+    { name: '잠원동', pct:  2.3, cnt:  31, bounds: [[37.504, 127.004], [37.512, 127.016]] },
+    { name: '청담동', pct:  2.3, cnt:  31, bounds: [[37.516, 127.043], [37.528, 127.057]] },
+    { name: '도곡동', pct:  1.6, cnt:  22, bounds: [[37.482, 127.043], [37.490, 127.057]] },
+  ]},
+];
+
+// 퍼센트 → 색상 (투명~주황~빨강)
+function pctToColor(pct, maxPct) {
+  const t = Math.min(pct / maxPct, 1);
+  const alpha = 0.15 + t * 0.75;
+  const r = Math.round(255);
+  const g = Math.round(107 - t * 80);
+  const b = Math.round(53 - t * 40);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+let map, currentPolygons = [], currentInfoWindows = [];
+let currentSlot = 0;
+
+// 지도 초기화
+map = new naver.maps.Map('map', {
+  center: new naver.maps.LatLng(37.502, 127.030),
+  zoom: 14,
+  mapTypeId: naver.maps.MapTypeId.NORMAL,
+  scaleControl: false,
+  logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+});
+
+function clearOverlays() {
+  currentPolygons.forEach(p => p.setMap(null));
+  currentInfoWindows.forEach(w => w.close());
+  currentPolygons = [];
+  currentInfoWindows = [];
+}
+
+function drawSlot(slotIdx) {
+  clearOverlays();
+  const data = SLOT_DATA[slotIdx];
+  const maxPct = Math.max(...data.zones.map(z => z.pct));
+
+  data.zones.forEach((zone, i) => {
+    const [[swLat, swLng], [neLat, neLng]] = zone.bounds;
+    const color = pctToColor(zone.pct, maxPct);
+
+    // 폴리곤
+    const polygon = new naver.maps.Rectangle({
+      map,
+      bounds: new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(swLat, swLng),
+        new naver.maps.LatLng(neLat, neLng)
+      ),
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: zone.pct >= 20 ? '#FF6B35' : '#FF6B3560',
+      strokeWeight: zone.pct >= 20 ? 2 : 1,
+      strokeOpacity: 0.8,
+    });
+
+    // 라벨 (중심점)
+    const centerLat = (swLat + neLat) / 2;
+    const centerLng = (swLng + neLng) / 2;
+
+    const infoWindow = new naver.maps.InfoWindow({
+      content: `<div style="
+        background:rgba(26,26,26,0.92);
+        border:1px solid ${zone.pct>=20?'#FF6B35':'#333'};
+        border-radius:6px;
+        padding:6px 10px;
+        text-align:center;
+        pointer-events:none;
+        white-space:nowrap;
+      ">
+        <div style="font-size:12px;font-weight:600;color:#fff">${zone.name}</div>
+        <div style="font-size:14px;font-weight:700;color:#FF6B35">${zone.pct}%</div>
+        <div style="font-size:10px;color:#888">${zone.cnt}건</div>
+      </div>`,
+      position: new naver.maps.LatLng(centerLat, centerLng),
+      borderColor: 'transparent',
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      disableAnchor: true,
+      pixelOffset: new naver.maps.Point(0, 0),
+    });
+    infoWindow.open(map);
+
+    currentPolygons.push(polygon);
+    currentInfoWindows.push(infoWindow);
+  });
+
+  // 순위 리스트 업데이트
+  const rankEl = document.getElementById('rank-list');
+  rankEl.innerHTML = data.zones.slice(0, 5).map((z, i) => `
+    <div class="rank-item rank-${i+1}">
+      <div class="rank-num">${i+1}위</div>
+      <div class="rank-zone">${z.name}</div>
+      <div class="rank-pct">${z.pct}% (${z.cnt}건)</div>
+    </div>
+  `).join('');
+}
+
+function setSlot(idx) {
+  currentSlot = idx;
+  document.querySelectorAll('.slot-tab').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  drawSlot(idx);
+}
+
+// 초기 렌더
+naver.maps.Event.addListener(map, 'init', () => {
+  drawSlot(0);
+});
+
+// init 이벤트가 이미 발생했을 경우 대비
+setTimeout(() => { if (currentPolygons.length === 0) drawSlot(0); }, 500);
+</script>
+</body>
+</html>
