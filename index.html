@@ -98,7 +98,7 @@ async function loadSlot(si) {
   if(cache[si]) return;
   // 슬라이더 순서(픽업완료)로 정렬
   const items = ALL.filter(d=>d.slot===si)
-                   .sort((a,b)=>a.slider_idx-b.slider_idx);
+                   .sort((a,b)=>a.t_pickup-b.t_pickup);
   const res=[], addrCache={};
   let done=0, total=items.length*2;
   document.getElementById('loading').style.display='flex';
