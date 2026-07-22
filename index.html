@@ -2,336 +2,373 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" 
-      content="default-src *; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src *; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOP 라이더 동선 분석</title>
+<title>박정선 동선 분석 2026-07-21</title>
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=buobcenkyk&submodules=geocoder"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 html,body { height:100%; }
 body { font-family:-apple-system,'Apple SD Gothic Neo',sans-serif; background:#0f0f0f; color:#fff; display:flex; flex-direction:column; height:100vh; }
+
 #header { background:#1a1a1a; border-bottom:1px solid #2a2a2a; padding:10px 14px; flex-shrink:0; }
-h1 { font-size:13px; font-weight:600; margin-bottom:7px; }
+.title-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+h1 { font-size:13px; font-weight:600; }
+.summary { display:flex; gap:12px; font-size:11px; }
+.sum-item { color:#888; }
+.sum-item span { color:#FF6B35; font-weight:700; }
+
 .slot-tabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
 .slot-tab { padding:4px 10px; border-radius:20px; border:1px solid #333; background:#222; color:#888; font-size:11px; cursor:pointer; }
 .slot-tab.s0.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
 .slot-tab.s1.active{background:#10B981;border-color:#10B981;color:#fff}
 .slot-tab.s2.active{background:#FF6B35;border-color:#FF6B35;color:#fff}
 .slot-tab.s3.active{background:#7F77DD;border-color:#7F77DD;color:#fff}
+.slot-tab.all.active{background:#aaa;border-color:#aaa;color:#111}
+
 #slider-wrap { display:flex; align-items:center; gap:8px; }
+#slider-wrap span { font-size:11px; color:#555; white-space:nowrap; }
 #slider { flex:1; -webkit-appearance:none; height:6px; border-radius:3px; background:#333; outline:none; cursor:pointer; }
 #slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#FF6B35; cursor:pointer; border:3px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.5); }
-#slider-label { font-size:12px; color:#FF6B35; font-weight:700; white-space:nowrap; min-width:55px; text-align:right; }
+#slider-label { font-size:12px; color:#FF6B35; font-weight:700; white-space:nowrap; min-width:65px; text-align:right; }
+
 #map { flex:1; width:100%; }
+
 #info-panel { background:#1a1a1a; border-top:1px solid #2a2a2a; padding:8px 12px 10px; flex-shrink:0; }
 .info-title { font-size:10px; color:#555; letter-spacing:.05em; margin-bottom:5px; }
 #current-list { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
-.curr-item { flex-shrink:0; background:#222; border-radius:7px; padding:6px 10px; min-width:155px; font-size:11px; }
+.curr-item { flex-shrink:0; background:#222; border-radius:7px; padding:6px 10px; min-width:160px; font-size:11px; }
 .curr-item.done { opacity:0.3; }
 .multi-badge { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; margin-bottom:3px; }
-.curr-shop { font-weight:600; color:#fff; margin-bottom:3px; }
+.curr-shop { font-weight:600; color:#fff; margin-bottom:3px; font-size:12px; }
 .time-row { font-size:10px; color:#666; margin-bottom:2px; }
-.curr-status { font-size:10px; }
-#loading { position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.88); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:14px; }
-#loading-bar-wrap { width:220px; height:5px; background:#333; border-radius:3px; }
-#loading-bar { height:100%; background:#FF6B35; border-radius:3px; width:0%; }
-#legend { position:absolute; top:8px; right:8px; background:rgba(15,15,15,0.9); border:1px solid #333; border-radius:8px; padding:8px 10px; font-size:10px; color:#888; pointer-events:none; z-index:10; }
-.leg-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.curr-fee { font-size:11px; font-weight:600; }
+.curr-status { font-size:10px; margin-top:2px; }
+
+/* 범례 */
+#legend { position:absolute; top:8px; left:8px; background:rgba(15,15,15,0.92); border:1px solid #333; border-radius:8px; padding:8px 10px; font-size:10px; color:#888; pointer-events:none; z-index:10; }
+.leg-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
 .leg-row:last-child { margin-bottom:0; }
+
+/* 로딩 */
+#loading { position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:16px; }
+#loading-bar-wrap { width:240px; height:5px; background:#333; border-radius:3px; }
+#loading-bar { height:100%; background:#FF6B35; border-radius:3px; width:0%; transition:width 0.1s; }
+#loading-text { font-size:13px; color:#aaa; }
 </style>
 </head>
 <body>
 <div id="header">
-<h1>🏍️ TOP 라이더 동선 — 픽업순서 기준</h1>
-<div class="slot-tabs">
-<button class="slot-tab s0 active" onclick="setSlot(0)">☀️ 아침·점심</button>
-<button class="slot-tab s1" onclick="setSlot(1)">🌤️ 오후</button>
-<button class="slot-tab s2" onclick="setSlot(2)">🌆 저녁</button>
-<button class="slot-tab s3" onclick="setSlot(3)">🌙 야간</button>
+  <div class="title-row">
+    <h1>🏍️ 박정선 동선 분석 — 2026-07-21</h1>
+    <div class="summary">
+      <div class="sum-item">총 <span>23건</span></div>
+      <div class="sum-item">수익 <span>102,760원</span></div>
+      <div class="sum-item">19:27~00:23</div>
+    </div>
+  </div>
+  <div class="slot-tabs">
+    <button class="slot-tab all active" onclick="setSlot(-1)">전체</button>
+    <button class="slot-tab s2" onclick="setSlot(2)">🌆 저녁피크 (3건)</button>
+    <button class="slot-tab s3" onclick="setSlot(3)">🌙 야간 (20건)</button>
+  </div>
+  <div id="slider-wrap">
+    <span>1</span>
+    <input type="range" id="slider" min="1" max="23" value="1" oninput="onSlider(this.value)">
+    <span id="slider-label">픽업 #1/23</span>
+  </div>
 </div>
-<div id="slider-wrap">
-<span style="font-size:10px;color:#555">1</span>
-<input type="range" id="slider" min="1" max="35" value="1" oninput="onSlider(this.value)">
-<span id="slider-label">#1 / 35</span>
-</div>
-</div>
-<div style="position:relative;flex:1;display:flex;flex-direction:column;">
-<div id="map" style="flex:1;"></div>
-<div id="legend">
-<div class="leg-row"><div style="width:16px;height:16px;border-radius:50%;border:2px dashed #aaa;"></div><span>픽업지</span></div>
-<div class="leg-row"><div style="width:14px;height:14px;border-radius:2px;background:#FF6B35;"></div><span>배달지</span></div>
-<div class="leg-row"><div style="width:20px;height:2px;background:#FF6B35;"></div><span>→ 이동동선</span></div>
-<div class="leg-row"><div style="width:20px;height:1px;border-top:2px dashed #555;"></div><span>공차이동</span></div>
-</div>
-<div id="info-panel">
-<div class="info-title">○ 픽업(점선원) &nbsp; ■ 배달(사각) &nbsp; 슬라이더=픽업완료순서</div>
-<div id="current-list">로딩 중...</div>
-</div>
-</div>
-<div id="loading">
-<div style="font-size:28px">🏍️</div>
-<div id="loading-text" style="font-size:13px;color:#aaa">주소 변환 중...</div>
-<div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-</div>
-<script>
-const ALL = [{"idx": 1, "shop": "싸다김밥 언주역점", "pickup_addr": "서울특별시 강남구 논현로 562", "dest_addr": "서울 강남구 언주로 556", "fee": "3500", "t_dispatch": "07:09", "t_pickup": "07:27", "t_deliver": "07:31", "group_id": 0, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [1], "deliver_order": [1], "slider_idx": 6}, {"idx": 2, "shop": "응큼떡볶이 본점", "pickup_addr": "서울특별시 강남구 봉은사로 174", "dest_addr": "서울 강남구 논현로67길 34-3", "fee": "4620", "t_dispatch": "07:32", "t_pickup": "07:38", "t_deliver": "07:44", "group_id": 1, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [2], "deliver_order": [2], "slider_idx": 7}, {"idx": 3, "shop": "바나프레소 국기원사거리점", "pickup_addr": "서울특별시 강남구 테헤란로8길 26", "dest_addr": "서울 강남구 논현로79길 41", "fee": "3580", "t_dispatch": "07:44", "t_pickup": "07:48", "t_deliver": "08:06", "group_id": 4, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 0, "pickup_order": [3, 4, 5], "deliver_order": [5, 3, 4], "slider_idx": 8}, {"idx": 4, "shop": "윤다방 1리터&수제와플 역삼본점", "pickup_addr": "서울 강남구 논현로94길 29-3", "dest_addr": "서울 강남구 역삼로12길 6", "fee": "5180", "t_dispatch": "07:47", "t_pickup": "07:55", "t_deliver": "08:09", "group_id": 4, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 0, "pickup_order": [3, 4, 5], "deliver_order": [5, 3, 4], "slider_idx": 9}, {"idx": 5, "shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "dest_addr": "서울 강남구 강남대로94길 83", "fee": "3900", "t_dispatch": "07:50", "t_pickup": "07:58", "t_deliver": "08:02", "group_id": 4, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 0, "pickup_order": [3, 4, 5], "deliver_order": [5, 3, 4], "slider_idx": 10}, {"idx": 6, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "강남대로120길 21", "fee": "4320", "t_dispatch": "08:14", "t_pickup": "08:16", "t_deliver": "08:26", "group_id": 7, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 0, "pickup_order": [6, 7, 8], "deliver_order": [8, 7, 6], "slider_idx": 11}, {"idx": 7, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "학동로26길 76", "fee": "2580", "t_dispatch": "08:15", "t_pickup": "08:17", "t_deliver": "08:23", "group_id": 7, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 0, "pickup_order": [6, 7, 8], "deliver_order": [8, 7, 6], "slider_idx": 12}, {"idx": 8, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "봉은사로21길 20", "fee": "2580", "t_dispatch": "08:16", "t_pickup": "08:17", "t_deliver": "08:21", "group_id": 7, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 0, "pickup_order": [6, 7, 8], "deliver_order": [8, 7, 6], "slider_idx": 13}, {"idx": 9, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "봉은사로44길 57", "fee": "3760", "t_dispatch": "08:27", "t_pickup": "08:43", "t_deliver": "08:56", "group_id": 10, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 0, "pickup_order": [9, 11, 10], "deliver_order": [10, 11, 9], "slider_idx": 14}, {"idx": 10, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "봉은사로21길 12", "fee": "2820", "t_dispatch": "08:37", "t_pickup": "08:44", "t_deliver": "08:49", "group_id": 10, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 0, "pickup_order": [9, 11, 10], "deliver_order": [10, 11, 9], "slider_idx": 16}, {"idx": 11, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "봉은사로 140", "fee": "4100", "t_dispatch": "08:37", "t_pickup": "08:43", "t_deliver": "08:51", "group_id": 10, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 0, "pickup_order": [9, 11, 10], "deliver_order": [10, 11, 9], "slider_idx": 15}, {"idx": 12, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "언주로114길 15-10", "fee": "3520", "t_dispatch": "08:56", "t_pickup": "09:06", "t_deliver": "09:16", "group_id": 13, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 0, "pickup_order": [12, 13, 14], "deliver_order": [12, 14, 13], "slider_idx": 17}, {"idx": 13, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "논현로121길 58", "fee": "3860", "t_dispatch": "08:59", "t_pickup": "09:06", "t_deliver": "09:27", "group_id": 13, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 0, "pickup_order": [12, 13, 14], "deliver_order": [12, 14, 13], "slider_idx": 18}, {"idx": 14, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "언주로 615", "fee": "2740", "t_dispatch": "09:00", "t_pickup": "09:08", "t_deliver": "09:21", "group_id": 13, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 0, "pickup_order": [12, 13, 14], "deliver_order": [12, 14, 13], "slider_idx": 19}, {"idx": 15, "shop": "찜슐랭 1인 김치찜&김치찌개 강남점", "pickup_addr": "서울특별시 강남구 봉은사로37길 7-6", "dest_addr": "서울 강남구 언주로116길 26", "fee": "3660", "t_dispatch": "09:22", "t_pickup": "09:34", "t_deliver": "09:39", "group_id": 14, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [15], "deliver_order": [15], "slider_idx": 20}, {"idx": 16, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "언주로 565", "fee": "4100", "t_dispatch": "09:36", "t_pickup": "09:53", "t_deliver": "10:02", "group_id": 16, "group_size": 2, "is_multi": true, "color": "#EC4899", "slot": 0, "pickup_order": [16, 17], "deliver_order": [17, 16], "slider_idx": 21}, {"idx": 17, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "봉은사로29길 6-6", "fee": "3160", "t_dispatch": "09:36", "t_pickup": "09:53", "t_deliver": "09:57", "group_id": 16, "group_size": 2, "is_multi": true, "color": "#EC4899", "slot": 0, "pickup_order": [16, 17], "deliver_order": [17, 16], "slider_idx": 22}, {"idx": 18, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "언주로130길 30", "fee": "4420", "t_dispatch": "10:03", "t_pickup": "10:07", "t_deliver": "10:12", "group_id": 17, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [18], "deliver_order": [18], "slider_idx": 23}, {"idx": 19, "shop": "고기혁명 강남점", "pickup_addr": "서울특별시 강남구 언주로 620", "dest_addr": "서울 강남구 강남대로84길 33", "fee": "5680", "t_dispatch": "10:09", "t_pickup": "10:15", "t_deliver": "10:34", "group_id": 20, "group_size": 3, "is_multi": true, "color": "#06B6D4", "slot": 0, "pickup_order": [19, 20, 21], "deliver_order": [20, 21, 19], "slider_idx": 24}, {"idx": 20, "shop": "BHC 강남논현점", "pickup_addr": "서울특별시 강남구 논현로119길 17", "dest_addr": "서울 강남구 논현로119길 37", "fee": "4240", "t_dispatch": "10:09", "t_pickup": "10:21", "t_deliver": "10:22", "group_id": 20, "group_size": 3, "is_multi": true, "color": "#06B6D4", "slot": 0, "pickup_order": [19, 20, 21], "deliver_order": [20, 21, 19], "slider_idx": 25}, {"idx": 21, "shop": "공리특허짬뽕", "pickup_addr": "서울특별시 강남구 논현로115길 10", "dest_addr": "서울 강남구 논현로128길 16-1", "fee": "4880", "t_dispatch": "10:14", "t_pickup": "10:24", "t_deliver": "10:26", "group_id": 20, "group_size": 3, "is_multi": true, "color": "#06B6D4", "slot": 0, "pickup_order": [19, 20, 21], "deliver_order": [20, 21, 19], "slider_idx": 26}, {"idx": 22, "shop": "CU 역삼충현점", "pickup_addr": "서울특별시 강남구 봉은사로30길 62", "dest_addr": "언주로98길 30", "fee": "4220", "t_dispatch": "10:28", "t_pickup": "10:39", "t_deliver": "10:45", "group_id": 21, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [22], "deliver_order": [22], "slider_idx": 27}, {"idx": 23, "shop": "이찌방라멘&카츠카레 강남역삼점", "pickup_addr": "서울특별시 강남구 언주로85길 32", "dest_addr": "서울 강남구 강남대로114길 27-3", "fee": "5360", "t_dispatch": "10:45", "t_pickup": "11:05", "t_deliver": "11:14", "group_id": 22, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [23], "deliver_order": [23], "slider_idx": 29}, {"idx": 24, "shop": "강남쌀국수 역삼점", "pickup_addr": "서울특별시 강남구 언주로 408", "dest_addr": "서울 강남구 언주로85길 32 역삼역센트럴푸르지오시티", "fee": "4160", "t_dispatch": "10:45", "t_pickup": "10:59", "t_deliver": "11:03", "group_id": 23, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [24], "deliver_order": [24], "slider_idx": 28}, {"idx": 25, "shop": "교촌치킨 강남역점", "pickup_addr": "서울특별시 강남구 강남대로98길 11", "dest_addr": "서울 강남구 언주로 615", "fee": "5800", "t_dispatch": "11:12", "t_pickup": "11:20", "t_deliver": "11:28", "group_id": 24, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [25], "deliver_order": [25], "slider_idx": 30}, {"idx": 26, "shop": "혜준당 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "dest_addr": "서울 강남구 언주로86길 11", "fee": "6200", "t_dispatch": "11:29", "t_pickup": "11:30", "t_deliver": "11:41", "group_id": 26, "group_size": 2, "is_multi": true, "color": "#84CC16", "slot": 0, "pickup_order": [26, 27], "deliver_order": [26, 27], "slider_idx": 31}, {"idx": 27, "shop": "나홀로 1인 곱도리탕 역삼점", "pickup_addr": "서울특별시 강남구 언주로85길 32", "dest_addr": "서울 강남구 선릉로89길 16", "fee": "5720", "t_dispatch": "11:29", "t_pickup": "11:36", "t_deliver": "11:47", "group_id": 26, "group_size": 2, "is_multi": true, "color": "#84CC16", "slot": 0, "pickup_order": [26, 27], "deliver_order": [26, 27], "slider_idx": 32}, {"idx": 28, "shop": "동지카츠 강남점", "pickup_addr": "서울특별시 강남구 언주로94길 9-5", "dest_addr": "서울 강남구 언주로 626", "fee": "5640", "t_dispatch": "11:50", "t_pickup": "11:54", "t_deliver": "12:06", "group_id": 29, "group_size": 3, "is_multi": true, "color": "#F97316", "slot": 0, "pickup_order": [28, 30, 29], "deliver_order": [28, 30, 29], "slider_idx": 33}, {"idx": 29, "shop": "흑룡반점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "dest_addr": "서울 강남구 봉은사로59길 48", "fee": "5800", "t_dispatch": "11:50", "t_pickup": "12:01", "t_deliver": "12:11", "group_id": 29, "group_size": 3, "is_multi": true, "color": "#F97316", "slot": 0, "pickup_order": [28, 30, 29], "deliver_order": [28, 30, 29], "slider_idx": 35}, {"idx": 30, "shop": "죽도령&덮밥 본점", "pickup_addr": "서울특별시 강남구 언주로103길 35", "dest_addr": "서울 강남구 언주로 626", "fee": "5240", "t_dispatch": "11:50", "t_pickup": "11:56", "t_deliver": "12:06", "group_id": 29, "group_size": 3, "is_multi": true, "color": "#F97316", "slot": 0, "pickup_order": [28, 30, 29], "deliver_order": [28, 30, 29], "slider_idx": 34}, {"idx": 31, "shop": "맛단-맛있는 다이어트식단 본점", "pickup_addr": "서울특별시 강남구 봉은사로30길 69", "dest_addr": "서울 강남구 논현로127길 7", "fee": "5000", "t_dispatch": "12:15", "t_pickup": "12:24", "t_deliver": "12:29", "group_id": 30, "group_size": 2, "is_multi": true, "color": "#A855F7", "slot": 0, "pickup_order": [32, 31], "deliver_order": [31, 32], "slider_idx": 37}, {"idx": 32, "shop": "영천 얼큰 돼지국밥&해장국밥", "pickup_addr": "서울특별시 강남구 봉은사로30길 73", "dest_addr": "서울 강남구 도산대로4길 19", "fee": "6680", "t_dispatch": "12:15", "t_pickup": "12:23", "t_deliver": "12:33", "group_id": 30, "group_size": 2, "is_multi": true, "color": "#A855F7", "slot": 0, "pickup_order": [32, 31], "deliver_order": [31, 32], "slider_idx": 36}, {"idx": 33, "shop": "논현 왕갈비탕", "pickup_addr": "서울특별시 강남구 강남대로128길 27", "dest_addr": "서울 강남구 강남대로122길 54-3", "fee": "4600", "t_dispatch": "12:29", "t_pickup": "12:39", "t_deliver": "12:41", "group_id": 32, "group_size": 2, "is_multi": true, "color": "#14B8A6", "slot": 0, "pickup_order": [34, 33], "deliver_order": [33, 34], "slider_idx": 38}, {"idx": 34, "shop": "팔공냉면", "pickup_addr": "서울특별시 강남구 강남대로128길 27", "dest_addr": "서울 강남구 언주로87길 23 호텔예스", "fee": "6840", "t_dispatch": "12:29", "t_pickup": "12:39", "t_deliver": "12:49", "group_id": 32, "group_size": 2, "is_multi": true, "color": "#14B8A6", "slot": 0, "pickup_order": [34, 33], "deliver_order": [33, 34], "slider_idx": 39}, {"idx": 35, "shop": "비비큐 빌리지논현점", "pickup_addr": "서울특별시 강남구 논현로 611", "dest_addr": "서울 강남구 논현로115길 4-1 승재빌라", "fee": "5000", "t_dispatch": "12:44", "t_pickup": "13:01", "t_deliver": "13:07", "group_id": 34, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 1, "pickup_order": [35], "deliver_order": [35], "slider_idx": 41}, {"idx": 36, "shop": "앤드위치 역삼점", "pickup_addr": "서울특별시 강남구 언주로85길 5-10", "dest_addr": "서울 강남구 논현로111길 6", "fee": "6200", "t_dispatch": "12:44", "t_pickup": "12:53", "t_deliver": "12:59", "group_id": 35, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 0, "pickup_order": [36], "deliver_order": [36], "slider_idx": 40}, {"idx": 37, "shop": "차셰프 고기덮밥 본점", "pickup_addr": "서울특별시 강남구 테헤란로 124", "dest_addr": "서울 강남구 학동로7길 5", "fee": "13400", "t_dispatch": "13:03", "t_pickup": "13:25", "t_deliver": "13:35", "group_id": 36, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 1, "pickup_order": [37], "deliver_order": [37], "slider_idx": 43}, {"idx": 38, "shop": "1982한인타운 함흥냉면 전문점", "pickup_addr": "서울특별시 강남구 강남대로124길 68", "dest_addr": "서울 강남구 논현로87길 41", "fee": "6440", "t_dispatch": "13:03", "t_pickup": "13:13", "t_deliver": "13:20", "group_id": 37, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 1, "pickup_order": [38], "deliver_order": [38], "slider_idx": 42}, {"idx": 39, "shop": "도원반점 논현본점", "pickup_addr": "서울특별시 강남구 학동로20길 22", "dest_addr": "서울 강남구 학동로6길 43", "fee": "5340", "t_dispatch": "13:26", "t_pickup": "13:38", "t_deliver": "13:40", "group_id": 38, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 1, "pickup_order": [39], "deliver_order": [39], "slider_idx": 44}, {"idx": 40, "shop": "힉스커피 HIGGS COFFEE", "pickup_addr": "서울특별시 강남구 강남대로110길 51", "dest_addr": "서울 강남구 학동로6길 12", "fee": "6140", "t_dispatch": "13:41", "t_pickup": "13:44", "t_deliver": "13:52", "group_id": 39, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 1, "pickup_order": [40], "deliver_order": [40], "slider_idx": 45}, {"idx": 41, "shop": "올데이파스타 강남점", "pickup_addr": "서울특별시 강남구 봉은사로25길 18", "dest_addr": "서울 강남구 논현로120길 16-1", "fee": "4360", "t_dispatch": "16:30", "t_pickup": "16:43", "t_deliver": "16:51", "group_id": 41, "group_size": 2, "is_multi": true, "color": "#EF4444", "slot": 1, "pickup_order": [41, 42], "deliver_order": [42, 41], "slider_idx": 46}, {"idx": 42, "shop": "처갓집양념치킨 논현점", "pickup_addr": "서울특별시 강남구 논현동 192-1", "dest_addr": "서울 강남구 논현로123길 8", "fee": "4600", "t_dispatch": "16:30", "t_pickup": "16:44", "t_deliver": "16:47", "group_id": 41, "group_size": 2, "is_multi": true, "color": "#EF4444", "slot": 1, "pickup_order": [41, 42], "deliver_order": [42, 41], "slider_idx": 47}, {"idx": 43, "shop": "고기혁명 강남점", "pickup_addr": "서울특별시 강남구 언주로 620", "dest_addr": "서울 강남구 봉은사로 507 우림보보카운티", "fee": "3980", "t_dispatch": "16:54", "t_pickup": "16:59", "t_deliver": "17:09", "group_id": 42, "group_size": 2, "is_multi": true, "color": "#3B82F6", "slot": 2, "pickup_order": [44, 43], "deliver_order": [44, 43], "slider_idx": 48}, {"idx": 44, "shop": "고기혁명 강남점", "pickup_addr": "서울특별시 강남구 언주로 620", "dest_addr": "서울 강남구 봉은사로61길 34", "fee": "4680", "t_dispatch": "16:54", "t_pickup": "16:59", "t_deliver": "17:04", "group_id": 42, "group_size": 2, "is_multi": true, "color": "#3B82F6", "slot": 2, "pickup_order": [44, 43], "deliver_order": [44, 43], "slider_idx": 49}, {"idx": 45, "shop": "신의 한국수 강남논현점", "pickup_addr": "서울특별시 강남구 봉은사로37길 29", "dest_addr": "서울 강남구 테헤란로 428", "fee": "6480", "t_dispatch": "17:14", "t_pickup": "17:18", "t_deliver": "17:30", "group_id": 44, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [45], "deliver_order": [45], "slider_idx": 50}, {"idx": 46, "shop": "타코치바스코(tacochibasco)", "pickup_addr": "서울특별시 강남구 테헤란로83길 11", "dest_addr": "서울 강남구 언주로87길 41 벤호텔", "fee": "6480", "t_dispatch": "17:21", "t_pickup": "17:36", "t_deliver": "17:45", "group_id": 45, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [46], "deliver_order": [46], "slider_idx": 51}, {"idx": 47, "shop": "부산밀면관 역삼점", "pickup_addr": "서울특별시 강남구 테헤란로25길 20", "dest_addr": "서울 강남구 언주로86길 11", "fee": "6080", "t_dispatch": "17:38", "t_pickup": "17:49", "t_deliver": "17:57", "group_id": 46, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [47], "deliver_order": [47], "slider_idx": 52}, {"idx": 48, "shop": "원할머니보쌈족발 대치점", "pickup_addr": "서울특별시 강남구 역삼동 779", "dest_addr": "서울 강남구 테헤란로14길 13", "fee": "5840", "t_dispatch": "17:51", "t_pickup": "18:03", "t_deliver": "18:09", "group_id": 47, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [48], "deliver_order": [48], "slider_idx": 53}, {"idx": 49, "shop": "부어치킨 역삼역점", "pickup_addr": "서울특별시 강남구 강남대로94길 73", "dest_addr": "서울 강남구 강남대로126길 79", "fee": "6160", "t_dispatch": "18:04", "t_pickup": "18:13", "t_deliver": "18:20", "group_id": 49, "group_size": 2, "is_multi": true, "color": "#FBBF24", "slot": 2, "pickup_order": [49, 50], "deliver_order": [49, 50], "slider_idx": 54}, {"idx": 50, "shop": "큭큭피자 강남점", "pickup_addr": "서울특별시 강남구 봉은사로 174", "dest_addr": "서울 강남구 학동로 165", "fee": "5600", "t_dispatch": "18:04", "t_pickup": "18:16", "t_deliver": "18:24", "group_id": 49, "group_size": 2, "is_multi": true, "color": "#FBBF24", "slot": 2, "pickup_order": [49, 50], "deliver_order": [49, 50], "slider_idx": 55}, {"idx": 51, "shop": "과일을 말하다 세이프룻 강남알디센터직영점", "pickup_addr": "서울특별시 강남구 논현로119길 23", "dest_addr": "서울 강남구 테헤란로14길 8", "fee": "6160", "t_dispatch": "18:22", "t_pickup": "18:27", "t_deliver": "18:41", "group_id": 50, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [51], "deliver_order": [51], "slider_idx": 56}, {"idx": 52, "shop": "진구곱창 강남역CGV점", "pickup_addr": "서울특별시 강남구 강남대로100길 14", "dest_addr": "서울 강남구 언주로99길 24", "fee": "5840", "t_dispatch": "18:28", "t_pickup": "18:41", "t_deliver": "18:46", "group_id": 51, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [52], "deliver_order": [52], "slider_idx": 57}, {"idx": 53, "shop": "비비큐 빌리지논현점", "pickup_addr": "서울특별시 강남구 논현로 611", "dest_addr": "서울 강남구 언주로 517", "fee": "5600", "t_dispatch": "18:42", "t_pickup": "18:57", "t_deliver": "19:03", "group_id": 52, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [53], "deliver_order": [53], "slider_idx": 58}, {"idx": 54, "shop": "노모어피자 역삼본점", "pickup_addr": "서울특별시 강남구 논현로94길 32", "dest_addr": "서울 강남구 테헤란로16길 38", "fee": "5600", "t_dispatch": "18:58", "t_pickup": "19:06", "t_deliver": "19:13", "group_id": 53, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 2, "pickup_order": [54], "deliver_order": [54], "slider_idx": 59}, {"idx": 55, "shop": "교촌치킨 강남역점", "pickup_addr": "서울특별시 강남구 강남대로98길 11", "dest_addr": "서울 강남구 테헤란로37길 13-5 역삼브라운도트호텔", "fee": "7160", "t_dispatch": "19:08", "t_pickup": "19:18", "t_deliver": "19:43", "group_id": 57, "group_size": 4, "is_multi": true, "color": "#34D399", "slot": 2, "pickup_order": [55, 57, 56, 58], "deliver_order": [57, 56, 58, 55], "slider_idx": 60}, {"idx": 56, "shop": "맛단-맛있는 다이어트식단 본점", "pickup_addr": "서울특별시 강남구 봉은사로30길 69", "dest_addr": "서울 강남구 봉은사로30길 49", "fee": "6360", "t_dispatch": "19:11", "t_pickup": "19:30", "t_deliver": "19:35", "group_id": 57, "group_size": 4, "is_multi": true, "color": "#34D399", "slot": 2, "pickup_order": [55, 57, 56, 58], "deliver_order": [57, 56, 58, 55], "slider_idx": 62}, {"idx": 57, "shop": "교촌치킨 강남역점", "pickup_addr": "서울특별시 강남구 강남대로98길 11", "dest_addr": "서울 강남구 테헤란로 113", "fee": "5500", "t_dispatch": "19:13", "t_pickup": "19:21", "t_deliver": "19:25", "group_id": 57, "group_size": 4, "is_multi": true, "color": "#34D399", "slot": 2, "pickup_order": [55, 57, 56, 58], "deliver_order": [57, 56, 58, 55], "slider_idx": 61}, {"idx": 58, "shop": "짜글이대가 강남본점", "pickup_addr": "서울특별시 강남구 논현로95길 30", "dest_addr": "서울 강남구 언주로103길 18", "fee": "6260", "t_dispatch": "19:28", "t_pickup": "19:32", "t_deliver": "19:40", "group_id": 57, "group_size": 4, "is_multi": true, "color": "#34D399", "slot": 2, "pickup_order": [55, 57, 56, 58], "deliver_order": [57, 56, 58, 55], "slider_idx": 63}, {"idx": 59, "shop": "자연산 깻잎막회&별미물회", "pickup_addr": "서울특별시 강남구 언주로113길 10", "dest_addr": "서울 강남구 언주로 323", "fee": "6740", "t_dispatch": "19:44", "t_pickup": "19:47", "t_deliver": "20:07", "group_id": 60, "group_size": 3, "is_multi": true, "color": "#818CF8", "slot": 3, "pickup_order": [59, 60, 61], "deliver_order": [60, 59, 61], "slider_idx": 64}, {"idx": 60, "shop": "춘리마라탕 아크로힐스논현점", "pickup_addr": "서울특별시 강남구 언주로 604", "dest_addr": "서울 강남구 봉은사로44길 74", "fee": "5780", "t_dispatch": "19:44", "t_pickup": "19:53", "t_deliver": "19:57", "group_id": 60, "group_size": 3, "is_multi": true, "color": "#818CF8", "slot": 2, "pickup_order": [59, 60, 61], "deliver_order": [60, 59, 61], "slider_idx": 65}, {"idx": 61, "shop": "따띠삼겹 선릉점", "pickup_addr": "서울특별시 강남구 언주로98길 31", "dest_addr": "서울 강남구 역삼로 444", "fee": "6740", "t_dispatch": "19:44", "t_pickup": "20:00", "t_deliver": "20:14", "group_id": 60, "group_size": 3, "is_multi": true, "color": "#818CF8", "slot": 3, "pickup_order": [59, 60, 61], "deliver_order": [60, 59, 61], "slider_idx": 66}, {"idx": 62, "shop": "요거요거&과일빙수", "pickup_addr": "서울특별시 강남구 테헤란로52길 16", "dest_addr": "서울 강남구 언주로98길 30 리에바움오피스텔", "fee": "5080", "t_dispatch": "20:07", "t_pickup": "20:18", "t_deliver": "20:21", "group_id": 61, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 3, "pickup_order": [62], "deliver_order": [62], "slider_idx": 67}, {"idx": 63, "shop": "BHC 역삼스타점", "pickup_addr": "서울특별시 강남구 언주로99길 9", "dest_addr": "서울 강남구 봉은사로50길 26", "fee": "4740", "t_dispatch": "20:23", "t_pickup": "20:26", "t_deliver": "20:40", "group_id": 64, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 3, "pickup_order": [63, 64, 65], "deliver_order": [63, 65, 64], "slider_idx": 68}, {"idx": 64, "shop": "평화로 부대찌개&부대볶음 강남점", "pickup_addr": "서울특별시 강남구 언주로93길 21", "dest_addr": "서울 강남구 봉은사로72길 13-4", "fee": "5220", "t_dispatch": "20:23", "t_pickup": "20:35", "t_deliver": "20:48", "group_id": 64, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 3, "pickup_order": [63, 64, 65], "deliver_order": [63, 65, 64], "slider_idx": 69}, {"idx": 65, "shop": "장수 곱창볶음", "pickup_addr": "서울특별시 강남구 테헤란로25길 15-10", "dest_addr": "서울 강남구 테헤란로 415 L7 강남 바이 롯데호텔", "fee": "6660", "t_dispatch": "20:24", "t_pickup": "20:35", "t_deliver": "20:44", "group_id": 64, "group_size": 3, "is_multi": true, "color": "#FF6B35", "slot": 3, "pickup_order": [63, 64, 65], "deliver_order": [63, 65, 64], "slider_idx": 70}, {"idx": 66, "shop": "위대한 카츠비 강남점", "pickup_addr": "서울특별시 강남구 봉은사로37길 7-6", "dest_addr": "서울 강남구 도곡로27길 6", "fee": "4780", "t_dispatch": "20:49", "t_pickup": "20:57", "t_deliver": "21:16", "group_id": 67, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 3, "pickup_order": [66, 67, 68], "deliver_order": [67, 66, 68], "slider_idx": 71}, {"idx": 67, "shop": "호식이두마리치킨 논현1호점", "pickup_addr": "서울특별시 강남구 언주로 605", "dest_addr": "서울 강남구 역삼로 209", "fee": "3500", "t_dispatch": "20:52", "t_pickup": "21:04", "t_deliver": "21:12", "group_id": 67, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 3, "pickup_order": [66, 67, 68], "deliver_order": [67, 66, 68], "slider_idx": 72}, {"idx": 68, "shop": "탕화쿵푸마라탕 역삼점", "pickup_addr": "서울특별시 강남구 테헤란로33길 19", "dest_addr": "서울 강남구 언주로65길 22-10", "fee": "3900", "t_dispatch": "20:52", "t_pickup": "21:08", "t_deliver": "21:19", "group_id": 67, "group_size": 3, "is_multi": true, "color": "#F59E0B", "slot": 3, "pickup_order": [66, 67, 68], "deliver_order": [67, 66, 68], "slider_idx": 73}, {"idx": 69, "shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "dest_addr": "역삼로12길 6", "fee": "5860", "t_dispatch": "21:20", "t_pickup": "21:28", "t_deliver": "21:34", "group_id": 68, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 3, "pickup_order": [69], "deliver_order": [69], "slider_idx": 74}, {"idx": 70, "shop": "굽네치킨 역삼1동점", "pickup_addr": "서울특별시 강남구 역삼동 752-53", "dest_addr": "서울 강남구 논현로79길 28", "fee": "3420", "t_dispatch": "21:27", "t_pickup": "21:37", "t_deliver": "21:49", "group_id": 71, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 3, "pickup_order": [70, 72, 71], "deliver_order": [72, 71, 70], "slider_idx": 75}, {"idx": 71, "shop": "캠핑칼삼겹 강남본점", "pickup_addr": "서울특별시 강남구 역삼로4길 16", "dest_addr": "서울 강남구 도곡로13길 8", "fee": "4700", "t_dispatch": "21:27", "t_pickup": "21:39", "t_deliver": "21:46", "group_id": 71, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 3, "pickup_order": [70, 72, 71], "deliver_order": [72, 71, 70], "slider_idx": 77}, {"idx": 72, "shop": "안녕하새우 역삼점", "pickup_addr": "서울특별시 강남구 역삼로 135", "dest_addr": "서울 강남구 도곡로3길 26", "fee": "3580", "t_dispatch": "21:35", "t_pickup": "21:38", "t_deliver": "21:43", "group_id": 71, "group_size": 3, "is_multi": true, "color": "#10B981", "slot": 3, "pickup_order": [70, 72, 71], "deliver_order": [72, 71, 70], "slider_idx": 76}, {"idx": 73, "shop": "푸라닭 역삼1동점", "pickup_addr": "서울특별시 강남구 역삼동 828-28", "dest_addr": "서울 강남구 테헤란로14길 13 강남역이스턴오피스텔", "fee": "3420", "t_dispatch": "21:47", "t_pickup": "21:55", "t_deliver": "21:57", "group_id": 72, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 3, "pickup_order": [73], "deliver_order": [73], "slider_idx": 78}, {"idx": 74, "shop": "볶음밥 도사 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "dest_addr": "서울 강남구 테헤란로37길 13-13 녹스호텔", "fee": "3420", "t_dispatch": "21:49", "t_pickup": "22:02", "t_deliver": "22:06", "group_id": 75, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 3, "pickup_order": [75, 74, 76], "deliver_order": [74, 75, 76], "slider_idx": 79}, {"idx": 75, "shop": "파스타에 반하다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "dest_addr": "서울 강남구 언주로89길 5", "fee": "3580", "t_dispatch": "21:50", "t_pickup": "22:02", "t_deliver": "22:11", "group_id": 75, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 3, "pickup_order": [75, 74, 76], "deliver_order": [74, 75, 76], "slider_idx": 80}, {"idx": 76, "shop": "아토커피 본점", "pickup_addr": "서울특별시 강남구 테헤란로33길 34", "dest_addr": "서울 강남구 선릉로92길 8", "fee": "4140", "t_dispatch": "21:58", "t_pickup": "22:03", "t_deliver": "22:18", "group_id": 75, "group_size": 3, "is_multi": true, "color": "#7F77DD", "slot": 3, "pickup_order": [75, 74, 76], "deliver_order": [74, 75, 76], "slider_idx": 81}, {"idx": 77, "shop": "대한냉면 강남점", "pickup_addr": "서울특별시 강남구 언주로94길 9-5", "dest_addr": "서울 강남구 봉은사로11길 46", "fee": "4540", "t_dispatch": "22:11", "t_pickup": "22:26", "t_deliver": "22:37", "group_id": 77, "group_size": 2, "is_multi": true, "color": "#EC4899", "slot": 3, "pickup_order": [77, 78], "deliver_order": [78, 77], "slider_idx": 82}, {"idx": 78, "shop": "푸줏간 고기도시락 강남역삼점", "pickup_addr": "서울특별시 강남구 언주로97길 27", "dest_addr": "서울 강남구 논현로97길 18", "fee": "3580", "t_dispatch": "22:11", "t_pickup": "22:28", "t_deliver": "22:31", "group_id": 77, "group_size": 2, "is_multi": true, "color": "#EC4899", "slot": 3, "pickup_order": [77, 78], "deliver_order": [78, 77], "slider_idx": 83}, {"idx": 79, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "선릉로120길 14", "fee": "4240", "t_dispatch": "22:35", "t_pickup": "22:42", "t_deliver": "22:54", "group_id": 79, "group_size": 2, "is_multi": true, "color": "#06B6D4", "slot": 3, "pickup_order": [79, 80], "deliver_order": [80, 79], "slider_idx": 84}, {"idx": 80, "shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "dest_addr": "언주로130길 30 논현동양파라곤아파트 102동", "fee": "2820", "t_dispatch": "22:35", "t_pickup": "22:42", "t_deliver": "22:49", "group_id": 79, "group_size": 2, "is_multi": true, "color": "#06B6D4", "slot": 3, "pickup_order": [79, 80], "deliver_order": [80, 79], "slider_idx": 85}, {"idx": 81, "shop": "샤오치치마라 마라탕&마라샹궈 역삼본점", "pickup_addr": "서울특별시 강남구 언주로98길 22", "dest_addr": "서울 강남구 도곡로37길 45", "fee": "3900", "t_dispatch": "22:49", "t_pickup": "22:59", "t_deliver": "23:13", "group_id": 82, "group_size": 3, "is_multi": true, "color": "#84CC16", "slot": 3, "pickup_order": [82, 81, 83], "deliver_order": [81, 83, 82], "slider_idx": 87}, {"idx": 82, "shop": "시베리안 빙수킹&카페", "pickup_addr": "서울특별시 강남구 테헤란로43길 29", "dest_addr": "서울 강남구 도곡로7길 19", "fee": "4220", "t_dispatch": "22:52", "t_pickup": "22:58", "t_deliver": "23:24", "group_id": 82, "group_size": 3, "is_multi": true, "color": "#84CC16", "slot": 3, "pickup_order": [82, 81, 83], "deliver_order": [81, 83, 82], "slider_idx": 86}, {"idx": 83, "shop": "대한냉면 강남점", "pickup_addr": "서울특별시 강남구 언주로94길 9-5", "dest_addr": "서울 강남구 테헤란로28길 50", "fee": "3500", "t_dispatch": "22:57", "t_pickup": "23:09", "t_deliver": "23:17", "group_id": 82, "group_size": 3, "is_multi": true, "color": "#84CC16", "slot": 3, "pickup_order": [82, 81, 83], "deliver_order": [81, 83, 82], "slider_idx": 88}, {"idx": 84, "shop": "BBQ 강남점", "pickup_addr": "서울특별시 강남구 역삼로3길 19", "dest_addr": "서울 강남구 강남대로 328 강남역쉐르빌오피스텔", "fee": "3740", "t_dispatch": "23:26", "t_pickup": "23:28", "t_deliver": "23:32", "group_id": 83, "group_size": 1, "is_multi": false, "color": "#555555", "slot": 3, "pickup_order": [84], "deliver_order": [84], "slider_idx": 89}, {"idx": 85, "shop": "요거트아이스크림의정석 강남역점", "pickup_addr": "서울특별시 강남구 역삼로14길 12", "dest_addr": "서울 강남구 역삼로5길 5", "fee": "3420", "t_dispatch": "23:26", "t_pickup": "23:44", "t_deliver": "23:46", "group_id": 87, "group_size": 4, "is_multi": true, "color": "#F97316", "slot": 3, "pickup_order": [86, 85, 87, 88], "deliver_order": [85, 86, 87, 88], "slider_idx": 91}, {"idx": 86, "shop": "레코드피자 강남역점", "pickup_addr": "서울특별시 강남구 역삼로3길 22", "dest_addr": "서울 강남구 테헤란로22길 56", "fee": "4060", "t_dispatch": "23:28", "t_pickup": "23:42", "t_deliver": "23:50", "group_id": 87, "group_size": 4, "is_multi": true, "color": "#F97316", "slot": 3, "pickup_order": [86, 85, 87, 88], "deliver_order": [85, 86, 87, 88], "slider_idx": 90}, {"idx": 87, "shop": "청년치킨 역삼점", "pickup_addr": "서울특별시 강남구 역삼로 133", "dest_addr": "서울 강남구 테헤란로14길 13", "fee": "3820", "t_dispatch": "23:34", "t_pickup": "23:48", "t_deliver": "23:53", "group_id": 87, "group_size": 4, "is_multi": true, "color": "#F97316", "slot": 3, "pickup_order": [86, 85, 87, 88], "deliver_order": [85, 86, 87, 88], "slider_idx": 92}, {"idx": 88, "shop": "달떡볶이 강남점", "pickup_addr": "서울특별시 강남구 역삼로7길 2", "dest_addr": "서울 강남구 테헤란로33길 12", "fee": "4380", "t_dispatch": "23:46", "t_pickup": "23:48", "t_deliver": "00:01", "group_id": 87, "group_size": 4, "is_multi": true, "color": "#F97316", "slot": 3, "pickup_order": [86, 85, 87, 88], "deliver_order": [85, 86, 87, 88], "slider_idx": 93}, {"idx": 89, "shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "dest_addr": "서울 강남구 언주로87길 50", "fee": "3820", "t_dispatch": "23:54", "t_pickup": "00:11", "t_deliver": "00:18", "group_id": 90, "group_size": 3, "is_multi": true, "color": "#A855F7", "slot": 3, "pickup_order": [90, 91, 89], "deliver_order": [91, 89, 90], "slider_idx": 3}, {"idx": 90, "shop": "조선냉면 강남점", "pickup_addr": "서울특별시 강남구 언주로103길 27", "dest_addr": "서울 강남구 강남대로84길 33", "fee": "4860", "t_dispatch": "23:55", "t_pickup": "00:03", "t_deliver": "00:23", "group_id": 90, "group_size": 3, "is_multi": true, "color": "#A855F7", "slot": 3, "pickup_order": [90, 91, 89], "deliver_order": [91, 89, 90], "slider_idx": 1}, {"idx": 91, "shop": "매드피자 강남점", "pickup_addr": "서울특별시 강남구 논현로102길 12", "dest_addr": "서울 강남구 언주로87길 41", "fee": "3180", "t_dispatch": "00:01", "t_pickup": "00:09", "t_deliver": "00:15", "group_id": 90, "group_size": 3, "is_multi": true, "color": "#A855F7", "slot": 3, "pickup_order": [90, 91, 89], "deliver_order": [91, 89, 90], "slider_idx": 2}, {"idx": 92, "shop": "BHC 역삼점", "pickup_addr": "서울특별시 강남구 논현로85길 52", "dest_addr": "서울 강남구 역삼로10길 13", "fee": "2640", "t_dispatch": "00:23", "t_pickup": "00:35", "t_deliver": "00:43", "group_id": 91, "group_size": 2, "is_multi": true, "color": "#14B8A6", "slot": 3, "pickup_order": [93, 92], "deliver_order": [93, 92], "slider_idx": 4}, {"idx": 93, "shop": "BHC 역삼점", "pickup_addr": "서울특별시 강남구 논현로85길 52", "dest_addr": "서울 강남구 역삼로3길 7", "fee": "3580", "t_dispatch": "00:23", "t_pickup": "00:35", "t_deliver": "00:39", "group_id": 91, "group_size": 2, "is_multi": true, "color": "#14B8A6", "slot": 3, "pickup_order": [93, 92], "deliver_order": [93, 92], "slider_idx": 5}];
 
-let map, currentSlot=0, cache={}, AM=[], AL=[];
+<div style="position:relative;flex:1;display:flex;flex-direction:column;">
+  <div id="map" style="flex:1;"></div>
+  <div id="legend">
+    <div class="leg-row"><div style="width:16px;height:16px;border-radius:50%;border:2.5px dashed #aaa;"></div><span>픽업지</span></div>
+    <div class="leg-row"><div style="width:14px;height:14px;border-radius:2px;background:#FF6B35;"></div><span>배달지</span></div>
+    <div class="leg-row"><div style="width:22px;height:2px;background:#FF6B35;position:relative;"><span style="position:absolute;right:-2px;top:-5px;font-size:8px;color:#FF6B35;">▶</span></div><span>이동방향</span></div>
+    <div class="leg-row"><div style="width:22px;border-top:2px dashed #555;"></div><span>공차이동</span></div>
+    <div class="leg-row"><div style="width:14px;height:14px;border-radius:2px;background:#888;"></div><span>완료(회색)</span></div>
+  </div>
+  <div id="info-panel">
+    <div class="info-title">○ 픽업(점선원) &nbsp; ■ 배달(사각) &nbsp; 같은색=멀티그룹 &nbsp; → 실제이동순서</div>
+    <div id="current-list">로딩 중...</div>
+  </div>
+</div>
+
+<div id="loading">
+  <div style="font-size:32px">🏍️</div>
+  <div id="loading-text">주소 변환 중... (0/46)</div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div style="font-size:11px;color:#555">잠시만 기다려주세요</div>
+</div>
+
+<script>
+const ALL = [{"idx": 1, "slot": 2, "pickup_addr": "서울특별시 서초구 서초대로 350", "dest_addr": "서울 서초구 강남대로49길 10", "shop": "구리구리 짜파구리", "fee": "4640", "zone": "서초동", "dist": "1447", "t_dispatch": "19:11", "t_pickup": "19:22", "t_deliver": "19:38", "slider_idx": 1, "group_id": 1, "group_size": 2, "is_multi": true, "color": "#FF6B35"}, {"idx": 2, "slot": 2, "pickup_addr": "서울특별시 서초구 서초대로 350", "dest_addr": "서울 서초구 서초대로58길 5", "shop": "고기랑 냉면이랑", "fee": "4080", "zone": "서초동", "dist": "183", "t_dispatch": "19:11", "t_pickup": "19:23", "t_deliver": "19:27", "slider_idx": 2, "group_id": 1, "group_size": 2, "is_multi": true, "color": "#FF6B35"}, {"idx": 3, "slot": 2, "pickup_addr": "서울특별시 서초구 서초대로 411", "dest_addr": "서울 서초구 서초대로 397 부띠크모나코", "shop": "써브웨이 강남역GT타워점", "fee": "4160", "zone": "서초동", "dist": "716", "t_dispatch": "19:30", "t_pickup": "19:45", "t_deliver": "19:49", "slider_idx": 3, "group_id": 2, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 4, "slot": 3, "pickup_addr": "서울특별시 강남구 테헤란로 124", "dest_addr": "서울 서초구 강남대로 455 강남태영데시앙루브", "shop": "짱아네 숯불치킨", "fee": "5420", "zone": "역삼동", "dist": "1947", "t_dispatch": "19:45", "t_pickup": "20:06", "t_deliver": "20:27", "slider_idx": 4, "group_id": 5, "group_size": 3, "is_multi": true, "color": "#F59E0B"}, {"idx": 5, "slot": 3, "pickup_addr": "서울특별시 강남구 강남대로 406", "dest_addr": "서울 강남구 봉은사로 174", "shop": "버거킹 강남대로점", "fee": "5180", "zone": "역삼동", "dist": "1317", "t_dispatch": "19:45", "t_pickup": "20:17", "t_deliver": "20:35", "slider_idx": 6, "group_id": 5, "group_size": 3, "is_multi": true, "color": "#F59E0B"}, {"idx": 6, "slot": 3, "pickup_addr": "서울특별시 강남구 역삼동 637-36", "dest_addr": "서울 강남구 논현로102길 42-1", "shop": "선릉역매운떡볶이 역삼점", "fee": "5260", "zone": "역삼동", "dist": "986", "t_dispatch": "19:49", "t_pickup": "20:12", "t_deliver": "20:42", "slider_idx": 5, "group_id": 5, "group_size": 3, "is_multi": true, "color": "#F59E0B"}, {"idx": 7, "slot": 3, "pickup_addr": "서울특별시 강남구 논현로118길 28", "dest_addr": "서울 강남구 테헤란로4길 6", "shop": "빙수를 품은 달인 강남점", "fee": "4900", "zone": "논현동", "dist": "2364", "t_dispatch": "20:36", "t_pickup": "20:47", "t_deliver": "20:59", "slider_idx": 7, "group_id": 6, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 8, "slot": 3, "pickup_addr": "서울특별시 강남구 테헤란로21길 25", "dest_addr": "서울 서초구 주흥1길 26", "shop": "닭가대표 숯불직화구이치킨 강남대표본점", "fee": "4260", "zone": "역삼동", "dist": "1725", "t_dispatch": "20:48", "t_pickup": "21:07", "t_deliver": "21:24", "slider_idx": 8, "group_id": 8, "group_size": 2, "is_multi": true, "color": "#10B981"}, {"idx": 9, "slot": 3, "pickup_addr": "서울특별시 강남구 논현로95길 29-5", "dest_addr": "서울 강남구 논현로120길 19", "shop": "청담족발 강남점", "fee": "4180", "zone": "역삼동", "dist": "1374", "t_dispatch": "20:48", "t_pickup": "21:08", "t_deliver": "21:16", "slider_idx": 9, "group_id": 8, "group_size": 2, "is_multi": true, "color": "#10B981"}, {"idx": 10, "slot": 3, "pickup_addr": "서울특별시 서초구 반포동 734-32", "dest_addr": "서울 서초구 신반포로 251 메이플자이아파트 105동", "shop": "몽구떼", "fee": "4160", "zone": "반포동", "dist": "1802", "t_dispatch": "21:17", "t_pickup": "21:26", "t_deliver": "21:34", "slider_idx": 10, "group_id": 9, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 11, "slot": 3, "pickup_addr": "서울특별시 서초구 고무래로 18", "dest_addr": "서울 서초구 서운로 212 서초푸르지오써밋2단지아파트 201동", "shop": "싸움의고수 반포점", "fee": "3920", "zone": "반포동", "dist": "1480", "t_dispatch": "21:28", "t_pickup": "21:47", "t_deliver": "21:57", "slider_idx": 11, "group_id": 10, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 12, "slot": 3, "pickup_addr": "서울특별시 강남구 테헤란로4길 6", "dest_addr": "서울 강남구 도곡로17길 12", "shop": "레이지레이디케이크", "fee": "3940", "zone": "역삼동", "dist": "1285", "t_dispatch": "21:48", "t_pickup": "22:15", "t_deliver": "22:24", "slider_idx": 13, "group_id": 11, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 13, "slot": 3, "pickup_addr": "서울특별시 강남구 강남대로 442", "dest_addr": "서울 강남구 테헤란로4길 6", "shop": "배스킨라빈스 강남대로점", "fee": "3700", "zone": "역삼동", "dist": "1076", "t_dispatch": "21:48", "t_pickup": "22:02", "t_deliver": "22:11", "slider_idx": 12, "group_id": 12, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 14, "slot": 3, "pickup_addr": "서울특별시 강남구 논현로 213", "dest_addr": "서울 서초구 반포대로 222", "shop": "5분덮밥 강남점", "fee": "5540", "zone": "도곡동", "dist": "5158", "t_dispatch": "22:16", "t_pickup": "22:32", "t_deliver": "22:55", "slider_idx": 15, "group_id": 13, "group_size": 2, "is_multi": true, "color": "#7F77DD"}, {"idx": 15, "slot": 3, "pickup_addr": "서울특별시 강남구 논현로63길 16", "dest_addr": "서울 서초구 서초중앙로 200", "shop": "대한불닭발 강남점", "fee": "5540", "zone": "역삼동", "dist": "3415", "t_dispatch": "22:16", "t_pickup": "22:27", "t_deliver": "22:46", "slider_idx": 14, "group_id": 13, "group_size": 2, "is_multi": true, "color": "#7F77DD"}, {"idx": 16, "slot": 3, "pickup_addr": "서울특별시 서초구 서초대로50길 63", "dest_addr": "서울 서초구 효령로72길 14", "shop": "피자에미치다", "fee": "2960", "zone": "서초동", "dist": "1642", "t_dispatch": "22:47", "t_pickup": "23:01", "t_deliver": "23:08", "slider_idx": 17, "group_id": 15, "group_size": 2, "is_multi": true, "color": "#EC4899"}, {"idx": 17, "slot": 3, "pickup_addr": "서울특별시 서초구 서초중앙로 125", "dest_addr": "서울 서초구 강남대로34길 93", "shop": "프레디버거 교대역점", "fee": "5680", "zone": "서초동", "dist": "3410", "t_dispatch": "22:47", "t_pickup": "22:59", "t_deliver": "23:15", "slider_idx": 16, "group_id": 15, "group_size": 2, "is_multi": true, "color": "#EC4899"}, {"idx": 18, "slot": 3, "pickup_addr": "서울특별시 강남구 논현로63길 16", "dest_addr": "서울 강남구 강남대로 338", "shop": "대한불닭발 강남점", "fee": "3860", "zone": "역삼동", "dist": "1263", "t_dispatch": "23:16", "t_pickup": "23:24", "t_deliver": "23:30", "slider_idx": 18, "group_id": 17, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 19, "slot": 3, "pickup_addr": "서울특별시 강남구 강남대로78길 12", "dest_addr": "서울 강남구 언주로75길 24", "shop": "찬란한아구&해물찜 강남본점", "fee": "4020", "zone": "역삼동", "dist": "1468", "t_dispatch": "23:25", "t_pickup": "23:34", "t_deliver": "23:40", "slider_idx": 19, "group_id": 18, "group_size": 1, "is_multi": false, "color": "#888888"}, {"idx": 20, "slot": 3, "pickup_addr": "서울특별시 강남구 언주로85길 32", "dest_addr": "서울 강남구 학동로4길 15", "shop": "골라먹는 팔도밥상", "fee": "4980", "zone": "역삼동", "dist": "2526", "t_dispatch": "23:34", "t_pickup": "23:44", "t_deliver": "00:04", "slider_idx": 20, "group_id": 20, "group_size": 2, "is_multi": true, "color": "#06B6D4"}, {"idx": 21, "slot": 3, "pickup_addr": "서울특별시 강남구 언주로85길 32", "dest_addr": "서울 서초구 주흥6길 38-4", "shop": "마지카츠 강남점", "fee": "3940", "zone": "역삼동", "dist": "2790", "t_dispatch": "23:34", "t_pickup": "23:45", "t_deliver": "23:55", "slider_idx": 21, "group_id": 20, "group_size": 2, "is_multi": true, "color": "#06B6D4"}, {"idx": 22, "slot": 3, "pickup_addr": "서울특별시 강남구 강남대로128길 79", "dest_addr": "서울 서초구 강남대로101안길 32", "shop": "요거토피아 논현본점", "fee": "4100", "zone": "논현동", "dist": "1572", "t_dispatch": "23:56", "t_pickup": "00:10", "t_deliver": "00:15", "slider_idx": 23, "group_id": 21, "group_size": 2, "is_multi": true, "color": "#84CC16"}, {"idx": 23, "slot": 3, "pickup_addr": "서울특별시 강남구 강남대로128길 27", "dest_addr": "서울 강남구 도산대로34길 21-5", "shop": "팔공냉면", "fee": "4340", "zone": "논현동", "dist": "1641", "t_dispatch": "23:57", "t_pickup": "00:08", "t_deliver": "00:23", "slider_idx": 22, "group_id": 21, "group_size": 2, "is_multi": true, "color": "#84CC16"}];
+
+let map, AM=[], AL=[], currentSlot=-1, slotData=null;
+const SLOT_COLORS = ['#F59E0B','#10B981','#FF6B35','#7F77DD'];
 
 map = new naver.maps.Map('map', {
-center: new naver.maps.LatLng(37.502,127.025), zoom:14, scaleControl:false,
+  center: new naver.maps.LatLng(37.502,127.025),
+  zoom:14, scaleControl:false,
 });
 
+// Geocoding
 function gc(addr) {
-return new Promise((res,rej) => {
-naver.maps.Service.geocode({query:addr},(st,resp)=>{
-if(st!==naver.maps.Service.Status.OK){rej();return;}
-const it=resp.v2.addresses;
-if(!it||!it.length){rej();return;}
-res({lat:parseFloat(it[0].y),lng:parseFloat(it[0].x)});
-});
-});
+  return new Promise((res,rej)=>{
+    naver.maps.Service.geocode({query:addr},(st,resp)=>{
+      if(st!==naver.maps.Service.Status.OK){rej();return;}
+      const it=resp.v2.addresses;
+      if(!it||!it.length){rej();return;}
+      res({lat:parseFloat(it[0].y),lng:parseFloat(it[0].x)});
+    });
+  });
 }
 
-async function loadSlot(si) {
-if(cache[si]) return;
-// 슬라이더 순서(픽업완료)로 정렬
-const items = ALL.filter(d=>d.slot===si)
-.sort((a,b)=>a.slider_idx-b.slider_idx);
-const res=[], addrCache={};
-let done=0, total=items.length*2;
-document.getElementById('loading').style.display='flex';
-for(const d of items){
-let p=null,de=null;
-try{ p = addrCache[d.pickup_addr] ?? (addrCache[d.pickup_addr]=await gc(d.pickup_addr)); }catch(e){}
-done++;
-try{ de = addrCache[d.dest_addr] ?? (addrCache[d.dest_addr]=await gc(d.dest_addr)); }catch(e){}
-done++;
-res.push({...d,p,de});
-document.getElementById('loading-text').textContent=`주소 변환 중... (${done}/${total})`;
-document.getElementById('loading-bar').style.width=(done/total*100)+'%';
-await new Promise(r=>setTimeout(r,60));
-}
-document.getElementById('loading').style.display='none';
-cache[si]=res; // 슬라이더 순서로 저장됨
+// 전체 데이터 Geocoding (최초 1회)
+let geocoded = null;
+async function loadAll() {
+  if(geocoded) return;
+  const addrCache={};
+  const res=[];
+  let done=0, total=ALL.length*2;
+  document.getElementById('loading').style.display='flex';
+  for(const d of ALL){
+    let p=null,de=null;
+    try{ p=addrCache[d.pickup_addr]??(addrCache[d.pickup_addr]=await gc(d.pickup_addr)); }catch(e){}
+    done++;
+    try{ de=addrCache[d.dest_addr]??(addrCache[d.dest_addr]=await gc(d.dest_addr)); }catch(e){}
+    done++;
+    res.push({...d,p,de});
+    document.getElementById('loading-text').textContent=`주소 변환 중... (${done}/${total})`;
+    document.getElementById('loading-bar').style.width=(done/total*100)+'%';
+    await new Promise(r=>setTimeout(r,60));
+  }
+  geocoded=res;
+  document.getElementById('loading').style.display='none';
 }
 
 function clr(){ AM.forEach(m=>m.setMap(null)); AL.forEach(l=>l.setMap(null)); AM=[];AL=[]; }
 function ll(lat,lng){ return new naver.maps.LatLng(lat,lng); }
 function samePos(a,b){ return a&&b&&Math.abs(a.lat-b.lat)<0.0001&&Math.abs(a.lng-b.lng)<0.0001; }
 
+// 픽업 마커: 점선원
 function mkPickup(pos,label,color,isActive,isComp){
-const sz=isActive?28:22;
-const bc=isComp?'#444':color;
-const tc=isComp?'#555':color;
-const glow=isActive?`box-shadow:0 0 0 4px ${color}44;`:'';
-const op=isComp?'opacity:0.25;':'';
-return new naver.maps.Marker({map,position:pos,icon:{
-content:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:transparent;border:2.5px dashed ${bc};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${tc};${glow}${op}">${label}</div>`,
-anchor:new naver.maps.Point(sz/2,sz/2),
-}});
+  const sz=isActive?28:22;
+  const bc=isComp?'#444':color;
+  const tc=isComp?'#555':color;
+  const glow=isActive?`box-shadow:0 0 0 5px ${color}44;`:'';
+  const op=isComp?'opacity:0.25;':'';
+  return new naver.maps.Marker({map,position:pos,icon:{
+    content:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:transparent;border:2.5px dashed ${bc};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${tc};${glow}${op}">${label}</div>`,
+    anchor:new naver.maps.Point(sz/2,sz/2),
+  }});
 }
 
+// 배달 마커: 채워진 사각형
 function mkDest(pos,label,color,isActive,isComp){
-const sz=isActive?26:20;
-const bg=isComp?'#1e1e1e':color;
-const bc=isComp?'#333':(isActive?'#fff':color+'aa');
-const tc=isComp?'#444':'#fff';
-const glow=isActive?`box-shadow:0 0 0 4px ${color}44;`:'';
-const op=isComp?'opacity:0.25;':'';
-return new naver.maps.Marker({map,position:pos,icon:{
-content:`<div style="width:${sz}px;height:${sz}px;border-radius:3px;background:${bg};border:2px solid ${bc};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${tc};${glow}${op}">${label}</div>`,
-anchor:new naver.maps.Point(sz/2,sz/2),
-}});
+  const sz=isActive?26:20;
+  const bg=isComp?'#1e1e1e':color;
+  const bc=isComp?'#333':(isActive?'#fff':color+'aa');
+  const tc=isComp?'#444':'#fff';
+  const glow=isActive?`box-shadow:0 0 0 4px ${color}44;`:'';
+  const op=isComp?'opacity:0.25;':'';
+  return new naver.maps.Marker({map,position:pos,icon:{
+    content:`<div style="width:${sz}px;height:${sz}px;border-radius:3px;background:${bg};border:2px solid ${bc};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${tc};${glow}${op}">${label}</div>`,
+    anchor:new naver.maps.Point(sz/2,sz/2),
+  }});
 }
 
+// 화살표 선
 function drawArrow(from,to,color,w,op,dashed){
-if(!from||!to) return;
-AL.push(new naver.maps.Polyline({map,path:[from,to],
-strokeColor:color,strokeWeight:w,strokeOpacity:op,
-strokeStyle:dashed?'shortdash':'solid',
-}));
-// 화살표 머리 (끝 지점 근처)
-const OFFSET = 0.7; // 선의 70% 지점에 화살표
-const midLat = from.lat()+(to.lat()-from.lat())*OFFSET;
-const midLng = from.lng()+(to.lng()-from.lng())*OFFSET;
-const angle = Math.atan2(to.lng()-from.lng(), to.lat()-from.lat())*180/Math.PI;
-AM.push(new naver.maps.Marker({map,position:ll(midLat,midLng),icon:{
-content:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};transform:rotate(${angle}deg);opacity:${op};"></div>`,
-anchor:new naver.maps.Point(5,5),
-}}));
+  if(!from||!to) return;
+  AL.push(new naver.maps.Polyline({map,path:[from,to],
+    strokeColor:color, strokeWeight:w, strokeOpacity:op,
+    strokeStyle:dashed?'shortdash':'solid',
+  }));
+  // 화살표 머리
+  const OFFSET=0.65;
+  const mLat=from.lat()+(to.lat()-from.lat())*OFFSET;
+  const mLng=from.lng()+(to.lng()-from.lng())*OFFSET;
+  const angle=Math.atan2(to.lng()-from.lng(),to.lat()-from.lat())*180/Math.PI;
+  AM.push(new naver.maps.Marker({map,position:ll(mLat,mLng),icon:{
+    content:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};transform:rotate(${angle}deg);opacity:${op};pointer-events:none;"></div>`,
+    anchor:new naver.maps.Point(5,5),
+  }}));
 }
 
-function renderGroup(items, currSliderIdx){
-const color=items[0].color;
-// 그룹 내 모든 픽업이 현재 슬라이더 이전인지
-const allPickedUp = items.every(d=>d.slider_idx <= currSliderIdx);
-const allCompleted = items.every(d=>d.slider_idx < currSliderIdx - items.length + 1);
-const lc = allCompleted?'#2a2a2a':color;
-const lo = allCompleted?0.15:0.9;
-const lw = 2.5;
+// 그룹 동선
+function renderGroup(items, stepIdx){
+  const color=items[0].color;
+  const allComp=items.every(d=>d.slider_idx<stepIdx);
+  const lc=allComp?'#2a2a2a':color;
+  const lo=allComp?0.15:0.9;
+  const lw=allComp?1.5:2.5;
 
-// 픽업 순서 (slider_idx 순)
-const byPickup  = [...items].filter(d=>d.p).sort((a,b)=>a.slider_idx-b.slider_idx);
-// 전달 순서 (전달완료 시간순)
-const byDeliver = [...items].filter(d=>d.de).sort((a,b)=>a.t_deliver.localeCompare(b.t_deliver));
+  const byPickup=[...items].filter(d=>d.p).sort((a,b)=>a.slider_idx-b.slider_idx);
+  const byDeliver=[...items].filter(d=>d.de).sort((a,b)=>a.t_deliver.localeCompare(b.t_deliver));
+  const allSamePick=byPickup.length>0&&byPickup.every(d=>samePos(d.p,byPickup[0].p));
+  const pickedItems=byPickup.filter(d=>d.slider_idx<=stepIdx);
 
-const allSamePick = byPickup.length>0 && byPickup.every(d=>samePos(d.p,byPickup[0].p));
-
-// 픽업된 것만 표시 (슬라이더 위치 기준)
-const pickedItems = byPickup.filter(d=>d.slider_idx<=currSliderIdx);
-
-if(allSamePick && byPickup.length>0){
-// 동일 픽업지
-const pPos=ll(byPickup[0].p.lat,byPickup[0].p.lng);
-const label=pickedItems.map(d=>d.idx).join('/');
-AM.push(mkPickup(pPos,label,allCompleted?'#444':color,false,allCompleted));
-
-// 픽업 완료 후 배달 시작 (모든 픽업 완료됐을 때만 배달선 표시)
-if(allPickedUp){
-if(byDeliver[0]?.de){
-drawArrow(pPos,ll(byDeliver[0].de.lat,byDeliver[0].de.lng),lc,lw,lo,false);
-}
-byDeliver.forEach((d,i)=>{
-if(!d.de) return;
-const dPos=ll(d.de.lat,d.de.lng);
-const isComp=allCompleted;
-AM.push(mkDest(dPos,d.idx,isComp?'#1e1e1e':color,false,isComp));
-if(i>0&&byDeliver[i-1].de){
-drawArrow(ll(byDeliver[i-1].de.lat,byDeliver[i-1].de.lng),dPos,lc,lw,lo,false);
-}
-});
-}
-} else {
-// 다른 픽업지: 픽업된 것만 순서대로 연결
-let prevP=null;
-pickedItems.forEach(d=>{
-if(!d.p) return;
-const pPos=ll(d.p.lat,d.p.lng);
-AM.push(mkPickup(pPos,d.idx,allCompleted?'#444':color,false,allCompleted));
-if(prevP) drawArrow(prevP,pPos,lc,lw,lo,false);
-prevP=pPos;
-});
-// 모든 픽업 완료 후 배달
-if(allPickedUp && prevP){
-if(byDeliver[0]?.de){
-drawArrow(prevP,ll(byDeliver[0].de.lat,byDeliver[0].de.lng),lc,lw,lo,false);
-}
-let prevD=null;
-byDeliver.forEach(d=>{
-if(!d.de) return;
-const dPos=ll(d.de.lat,d.de.lng);
-AM.push(mkDest(dPos,d.idx,allCompleted?'#1e1e1e':color,false,allCompleted));
-if(prevD) drawArrow(prevD,dPos,lc,lw,lo,false);
-prevD=dPos;
-});
-}
-}
+  if(allSamePick&&byPickup.length>0){
+    // 동일 픽업지
+    const pPos=ll(byPickup[0].p.lat,byPickup[0].p.lng);
+    const label=pickedItems.map(d=>d.idx).join('/');
+    AM.push(mkPickup(pPos,label,allComp?'#444':color,false,allComp));
+    const allPicked=byPickup.every(d=>d.slider_idx<=stepIdx);
+    if(allPicked){
+      if(byDeliver[0]?.de) drawArrow(pPos,ll(byDeliver[0].de.lat,byDeliver[0].de.lng),lc,lw,lo,false);
+      byDeliver.forEach((d,i)=>{
+        if(!d.de) return;
+        const dPos=ll(d.de.lat,d.de.lng);
+        AM.push(mkDest(dPos,d.idx,allComp?'#1e1e1e':color,false,allComp));
+        if(i>0&&byDeliver[i-1].de) drawArrow(ll(byDeliver[i-1].de.lat,byDeliver[i-1].de.lng),dPos,lc,lw,lo,false);
+      });
+    }
+  } else {
+    // 다른 픽업지: 픽업된 것만 순서대로
+    let prevP=null;
+    pickedItems.forEach(d=>{
+      if(!d.p) return;
+      const pPos=ll(d.p.lat,d.p.lng);
+      AM.push(mkPickup(pPos,d.idx,allComp?'#444':color,false,allComp));
+      if(prevP) drawArrow(prevP,pPos,lc,lw,lo,false);
+      prevP=pPos;
+    });
+    const allPicked=byPickup.every(d=>d.slider_idx<=stepIdx);
+    if(allPicked&&prevP){
+      if(byDeliver[0]?.de) drawArrow(prevP,ll(byDeliver[0].de.lat,byDeliver[0].de.lng),lc,lw,lo,false);
+      let prevD=null;
+      byDeliver.forEach(d=>{
+        if(!d.de) return;
+        const dPos=ll(d.de.lat,d.de.lng);
+        AM.push(mkDest(dPos,d.idx,allComp?'#1e1e1e':color,false,allComp));
+        if(prevD) drawArrow(prevD,dPos,lc,lw,lo,false);
+        prevD=dPos;
+      });
+    }
+  }
 }
 
 function renderAt(stepIdx){
-const data=cache[currentSlot];
-if(!data) return;
-clr();
+  const data=slotData;
+  if(!data||!data.length) return;
+  clr();
 
-// stepIdx = 슬라이더 값 (픽업완료 순서)
-// stepIdx까지 픽업된 배달만 표시
-const visible = data.filter(d=>d.slider_idx<=stepIdx);
-const curr = data.find(d=>d.slider_idx===stepIdx);
+  const curr=data.find(d=>d.slider_idx===stepIdx)||data[data.length-1];
 
-// 그룹별 묶기
-const byGroup={};
-visible.forEach(d=>{
-if(!byGroup[d.group_id]) byGroup[d.group_id]=[];
-byGroup[d.group_id].push(d);
-});
+  // 그룹별
+  const byGroup={};
+  const allByGroup={};
+  data.forEach(d=>{
+    if(!allByGroup[d.group_id]) allByGroup[d.group_id]=[];
+    allByGroup[d.group_id].push(d);
+    if(d.slider_idx<=stepIdx){
+      if(!byGroup[d.group_id]) byGroup[d.group_id]=[];
+      byGroup[d.group_id].push(d);
+    }
+  });
 
-// 전체 데이터에서 그룹 완성본도 가져오기 (배달지 표시 위해)
-const allByGroup={};
-data.forEach(d=>{
-if(!allByGroup[d.group_id]) allByGroup[d.group_id]=[];
-allByGroup[d.group_id].push(d);
-});
+  const listItems=[];
+  Object.entries(byGroup).forEach(([gid,items])=>{
+    const fullGroup=allByGroup[gid]||items;
+    if(fullGroup.length===1){
+      const d=items[0];
+      if(!d.p||!d.de) return;
+      const isActive=d.slider_idx===stepIdx;
+      const isComp=d.slider_idx<stepIdx;
+      const c=isComp?'#2a2a2a':d.color;
+      const pPos=ll(d.p.lat,d.p.lng);
+      const dPos=ll(d.de.lat,d.de.lng);
+      AM.push(mkPickup(pPos,d.idx,isComp?'#444':d.color,isActive,isComp));
+      AM.push(mkDest(dPos,d.idx,isComp?'#1e1e1e':d.color,isActive,isComp));
+      drawArrow(pPos,dPos,c,isActive?3:2,isComp?0.15:0.85,false);
+      listItems.push({...d,isActive,isCompleted:isComp});
+    } else {
+      renderGroup(fullGroup,stepIdx);
+      items.forEach(d=>listItems.push({...d,
+        isActive:d.slider_idx===stepIdx,
+        isCompleted:d.slider_idx<stepIdx,
+      }));
+    }
+  });
 
-const listItems=[];
+  // 공차 이동선
+  if(curr?.p){
+    const prevComp=data.filter(d=>d.de&&d.slider_idx<stepIdx)
+      .sort((a,b)=>b.t_deliver.localeCompare(a.t_deliver))[0];
+    if(prevComp?.de){
+      drawArrow(ll(prevComp.de.lat,prevComp.de.lng),ll(curr.p.lat,curr.p.lng),'#555',1,0.4,true);
+    }
+  }
 
-Object.entries(byGroup).forEach(([gid,items])=>{
-const fullGroup=allByGroup[gid]||items;
+  if(curr?.p) map.panTo(ll(curr.p.lat,curr.p.lng));
 
-if(fullGroup.length===1){
-// 단독 배달
-const d=items[0];
-if(!d.p||!d.de) return;
-const isComp=d.slider_idx<stepIdx;
-const c=isComp?'#2a2a2a':d.color;
-const pPos=ll(d.p.lat,d.p.lng);
-const dPos=ll(d.de.lat,d.de.lng);
-AM.push(mkPickup(pPos,d.idx,isComp?'#444':d.color,d.slider_idx===stepIdx,isComp));
-AM.push(mkDest(dPos,d.idx,isComp?'#1e1e1e':d.color,d.slider_idx===stepIdx,isComp));
-drawArrow(pPos,dPos,c,2,isComp?0.15:0.85,false);
-listItems.push({...d,isActive:d.slider_idx===stepIdx,isCompleted:isComp});
-} else {
-// 멀티: 전체 그룹 데이터 넘기되 현재 슬라이더 위치 전달
-renderGroup(fullGroup, stepIdx);
-items.forEach(d=>listItems.push({...d,
-isActive:d.slider_idx===stepIdx,
-isCompleted:d.slider_idx<stepIdx,
-}));
-}
-});
+  // 하단 카드 (최근 4건)
+  document.getElementById('current-list').innerHTML=
+    listItems.sort((a,b)=>a.idx-b.idx).slice(-4).map(c=>`
+      <div class="curr-item ${c.isCompleted?'done':''}" style="border-left:3px solid ${c.isCompleted?'#333':c.color}">
+        ${c.is_multi?`<div class="multi-badge" style="background:${c.color}22;color:${c.color}">${c.group_size}동시픽업</div>`:''}
+        <div class="curr-shop">#${c.idx} ${c.shop.substring(0,14)}</div>
+        <div class="time-row">픽업 ${c.t_pickup} → 전달 ${c.t_deliver}</div>
+        <div class="curr-fee" style="color:${c.isCompleted?'#444':c.color}">${parseInt(c.fee).toLocaleString()}원</div>
+        <div class="curr-status" style="color:${c.isActive?c.color:'#444'}">
+          ${c.isActive?'🔴 진행중':'✅ 완료'} · ${c.zone}
+        </div>
+      </div>`).join('');
 
-// 공차 이동선 (이전 전달지 → 현재 픽업지)
-if(curr?.p){
-// 현재 픽업 직전에 완료된 전달 찾기
-const prevCompleted = visible
-.filter(d=>d.de && d.slider_idx<stepIdx)
-.sort((a,b)=>b.t_deliver.localeCompare(a.t_deliver))[0];
-if(prevCompleted?.de){
-drawArrow(
-ll(prevCompleted.de.lat,prevCompleted.de.lng),
-ll(curr.p.lat,curr.p.lng),
-'#555',1,0.4,true
-);
-}
-}
-
-if(curr?.p) map.panTo(ll(curr.p.lat,curr.p.lng));
-
-// 하단 카드
-document.getElementById('current-list').innerHTML=
-listItems.sort((a,b)=>a.idx-b.idx).slice(-4).map(c=>`
-     <div class="curr-item ${c.isCompleted?'done':''}" style="border-left:3px solid ${c.isCompleted?'#333':c.color}">
-       ${c.is_multi?`<div class="multi-badge" style="background:${c.color}22;color:${c.color}">${c.group_size}동시</div>`:''}
-       <div class="curr-shop">#${c.idx} ${c.shop.substring(0,13)}</div>
-       <div class="time-row">픽업${c.t_pickup} → 전달${c.t_deliver}</div>
-       <div class="curr-status" style="color:${c.isActive?c.color:'#444'}">
-         ${c.isActive?'🔴 픽업완료':'✅ 전달완료'} · ${parseInt(c.fee).toLocaleString()}원
-       </div>
-     </div>`).join('');
+  // 슬라이더 라벨
+  document.getElementById('slider-label').textContent=`픽업 #${stepIdx}/${data.length}`;
 }
 
-function onSlider(val){
-const data=cache[currentSlot];
-if(!data) return;
-document.getElementById('slider-label').textContent=`픽업#${val} / ${data.length}`;
-renderAt(parseInt(val));
-}
+function onSlider(val){ if(slotData) renderAt(parseInt(val)); }
 
 async function setSlot(idx){
-currentSlot=idx;
-document.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
-clr();
-document.getElementById('slider').value=1;
-await loadSlot(idx);
-const n=cache[idx].length;
-document.getElementById('slider').max=n;
-document.getElementById('slider-label').textContent=`픽업#1 / ${n}`;
-renderAt(1);
+  currentSlot=idx;
+  document.querySelectorAll('.slot-tab').forEach((t,i)=>{
+    t.classList.remove('active');
+  });
+  event.target.classList.add('active');
+
+  await loadAll();
+
+  // 슬롯 필터 + slider_idx 재할당
+  let filtered = idx===-1 ? [...geocoded] : geocoded.filter(d=>d.slot===idx);
+  filtered.sort((a,b)=>a.slider_idx-b.slider_idx);
+
+  // 현재 슬롯 내 slider_idx 재정렬
+  filtered.forEach((d,i)=>{ d._local_idx=i+1; });
+  // slider_idx를 로컬 인덱스로 임시 교체
+  const tmp = filtered.map(d=>({...d,slider_idx:d._local_idx}));
+  slotData=tmp;
+
+  const n=slotData.length;
+  const slider=document.getElementById('slider');
+  slider.max=n;
+  slider.value=1;
+  renderAt(1);
 }
 
-naver.maps.Event.addListener(map,'init',()=>setSlot(0));
-setTimeout(()=>setSlot(0),600);
+naver.maps.Event.addListener(map,'init',async()=>{
+  await loadAll();
+  // 전체 보기로 시작
+  slotData=[...geocoded].sort((a,b)=>a.slider_idx-b.slider_idx)
+    .map((d,i)=>({...d,slider_idx:i+1}));
+  const slider=document.getElementById('slider');
+  slider.max=slotData.length;
+  slider.value=1;
+  renderAt(1);
+});
+setTimeout(async()=>{
+  if(!geocoded){
+    await loadAll();
+    slotData=[...geocoded].sort((a,b)=>a.slider_idx-b.slider_idx)
+      .map((d,i)=>({...d,slider_idx:i+1}));
+    const slider=document.getElementById('slider');
+    slider.max=slotData.length;
+    slider.value=1;
+    renderAt(1);
+  }
+},800);
 </script>
 </body>
 </html>
