@@ -10,48 +10,43 @@
 * { box-sizing:border-box; margin:0; padding:0; }
 html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',sans-serif; background:#0f0f0f; color:#fff; }
 body { display:flex; flex-direction:column; height:100vh; }
-
 #header { background:#1a1a1a; border-bottom:1px solid #2a2a2a; padding:10px 14px; flex-shrink:0; }
 h1 { font-size:13px; font-weight:600; margin-bottom:8px; }
 .slot-tabs { display:flex; gap:5px; flex-wrap:wrap; }
 .slot-tab { padding:5px 12px; border-radius:20px; border:1px solid #333; background:#222; color:#888; font-size:11px; cursor:pointer; white-space:nowrap; }
-.slot-tab.s0.active { background:#F59E0B; border-color:#F59E0B; color:#fff; }
-.slot-tab.s1.active { background:#10B981; border-color:#10B981; color:#fff; }
-.slot-tab.s2.active { background:#FF6B35; border-color:#FF6B35; color:#fff; }
-.slot-tab.s3.active { background:#7F77DD; border-color:#7F77DD; color:#fff; }
-
+.slot-tab.s0.active{background:#F59E0B;border-color:#F59E0B;color:#fff}
+.slot-tab.s1.active{background:#10B981;border-color:#10B981;color:#fff}
+.slot-tab.s2.active{background:#FF6B35;border-color:#FF6B35;color:#fff}
+.slot-tab.s3.active{background:#7F77DD;border-color:#7F77DD;color:#fff}
 #main { flex:1; display:flex; overflow:hidden; }
-
 #shop-panel { width:185px; background:#111; border-right:1px solid #222; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
 .panel-title { padding:7px 12px; font-size:10px; color:#555; text-transform:uppercase; border-bottom:1px solid #1e1e1e; flex-shrink:0; }
 #shop-list { flex:1; overflow-y:auto; }
 .shop-item { padding:8px 12px; border-bottom:.5px solid #1a1a1a; cursor:pointer; }
 .shop-item:hover { background:#1a1a1a; }
-.shop-item.active { background:#FF6B3512; border-left:3px solid var(--slot-color,#FF6B35); }
+.shop-item.active { background:#FF6B3512; border-left:3px solid #FF6B35; }
 .shop-name { font-size:11px; font-weight:600; color:#ccc; margin-bottom:2px; }
 .shop-sub { display:flex; justify-content:space-between; font-size:10px; }
 .shop-cnt { font-weight:700; }
 .shop-zone { color:#666; }
-
 #map-wrap { flex:1; position:relative; }
 #map { width:100%; height:100%; }
 #status-overlay {
   position:absolute; top:8px; left:50%; transform:translateX(-50%);
-  background:rgba(15,15,15,0.92); border:1px solid #444;
-  border-radius:8px; padding:5px 14px; font-size:11px;
-  display:none; z-index:10; white-space:nowrap;
+  background:rgba(15,15,15,0.92); border:1px solid #444; border-radius:8px;
+  padding:5px 14px; font-size:11px; display:none; z-index:10; white-space:nowrap;
 }
-
 #dest-panel { width:165px; background:#111; border-left:1px solid #222; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
+#dest-panel-title { padding:7px 12px; font-size:10px; color:#555; text-transform:uppercase; border-bottom:1px solid #1e1e1e; flex-shrink:0; }
 #dest-list { flex:1; overflow-y:auto; padding:4px 0; }
 .dest-item { padding:5px 12px; cursor:pointer; border-bottom:.5px solid #1a1a1a; }
 .dest-item:hover { background:#1a1a1a; }
 .dest-addr { font-size:10px; color:#bbb; margin-bottom:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dest-bar { height:3px; background:#1e1e1e; border-radius:2px; margin-top:2px; overflow:hidden; }
+.dest-bar-fill { height:100%; background:#7F77DD; border-radius:2px; }
 .dest-cnt { font-size:10px; color:#7F77DD; font-weight:600; }
-
 #statusbar { background:#1a1a1a; border-top:1px solid #2a2a2a; padding:6px 14px; flex-shrink:0; font-size:11px; color:#888; }
 #statusbar b { font-weight:600; }
-
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:#333; }
 </style>
@@ -66,7 +61,6 @@ h1 { font-size:13px; font-weight:600; margin-bottom:8px; }
     <button class="slot-tab s3" onclick="setSlot(3)">🌙 야간논피크</button>
   </div>
 </div>
-
 <div id="main">
   <div id="shop-panel">
     <div class="panel-title">TOP 10 상점</div>
@@ -77,17 +71,15 @@ h1 { font-size:13px; font-weight:600; margin-bottom:8px; }
     <div id="status-overlay"></div>
   </div>
   <div id="dest-panel">
-    <div class="panel-title">배달지 TOP 3</div>
+    <div id="dest-panel-title">배달지 전체</div>
     <div id="dest-list"><div style="padding:12px;font-size:11px;color:#444">← 상점 클릭</div></div>
   </div>
 </div>
-<div id="statusbar">상점을 선택하면 동선이 표시됩니다</div>
-
+<div id="statusbar">상점을 선택하면 전체 배달지 동선이 표시됩니다</div>
 <script>
-const DATA = {"date": "2026-07-12", "slot_names": ["아침·점심(06~13시)", "오후논피크(13~17시)", "저녁피크(17~20시)", "야간논피크(20~06시)"], "slots": {"0": [{"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 42, "avg_fee": 4623, "dests": [["압구정로 151", 5], ["압구정로39길 58", 2], ["영동대로142길 16", 2]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 41, "avg_fee": 4520, "dests": [["학동로68길 29 삼성현대힐스테이트1단지아파트", 2], ["봉은사로 134 도미인서울강남호텔", 1], ["선릉로86길 31 롯데골드로즈2차", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 14, "avg_fee": 5800, "dests": [["삼성로 150", 2], ["도곡로37길 48", 1], ["개포로 310", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 12, "avg_fee": 4738, "dests": [["서울 서초구 사평대로55길 97-6", 1], ["서울 강남구 언주로 615 논현아이파크아파트", 1], ["서울 강남구 학동로26길 43-1", 1]]}, {"shop": "평화로 부대찌개&부대볶음 강남점", "pickup_addr": "서울특별시 강남구 언주로93길 21", "zone": "역삼동", "total": 7, "avg_fee": 5400, "dests": [["서울 강남구 논현로72길 33", 1], ["서울 강남구 삼성로51길 37 래미안대치팰리스1단지아파트", 1], ["서울 서초구 사평대로56길 8", 1]]}, {"shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동", "total": 7, "avg_fee": 5171, "dests": [["서울 강남구 개포로 310 디에이치퍼스티어아이파크아파트", 1], ["서울 강남구 봉은사로21길 57-3", 1], ["서울 서초구 언남11길 19", 1]]}, {"shop": "혜준당 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 4649, "dests": [["서울 강남구 봉은사로51길 43", 1], ["서울 강남구 학동로30길 37-20", 1], ["서울 서초구 주흥9길 14-17", 1]]}, {"shop": "영천 얼큰 돼지국밥&해장국밥", "pickup_addr": "서울특별시 강남구 봉은사로30길 73", "zone": "역삼동", "total": 7, "avg_fee": 5377, "dests": [["서울 강남구 남부순환로365길 56", 1], ["서울 강남구 봉은사로84길 10-1", 1], ["서울 강남구 논현로118길 11", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 7, "avg_fee": 5317, "dests": [["서울 서초구 강남대로 365 도씨에빛1", 1], ["서울 강남구 테헤란로6길 26", 1], ["서울 강남구 선릉로126길 22", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 6, "avg_fee": 5353, "dests": [["서울 강남구 학동로 607", 1], ["서울 강남구 선릉로82길 17", 1], ["서울 강남구 봉은사로43길 55", 1]]}], "1": [{"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 31, "avg_fee": 4612, "dests": [["언주로98길 32", 1], ["봉은사로48길 49", 1], ["테헤란로64길 8", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 29, "avg_fee": 4769, "dests": [["도산대로87길 18", 2], ["도산대로72길 36", 2], ["논현로155길 28", 2]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 11, "avg_fee": 5945, "dests": [["삼성로 14", 2], ["선릉로 222", 1], ["도곡로25길 32", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 9, "avg_fee": 5922, "dests": [["서울 강남구 도산대로61길 4 순수 청담본점", 1], ["서울 강남구 봉은사로29길 25 토미빌228", 1], ["서울 강남구 봉은사로 524 웨스틴서울파르나스", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 8, "avg_fee": 5435, "dests": [["서울 강남구 언주로87길 11", 1], ["서울 강남구 역삼로34길 15", 1], ["서울 강남구 역삼로 307-1 역삼센트럴2차아이파크", 1]]}, {"shop": "처갓집양념치킨 삼성점", "pickup_addr": "서울특별시 강남구 삼성로103길 12", "zone": "삼성동", "total": 8, "avg_fee": 5160, "dests": [["서울 강남구 학동로87길 9", 1], ["서울 강남구 도산대로85길 30 청담신원아침도시마인", 1], ["서울 강남구 선릉로89길 16 능현오피스텔", 1]]}, {"shop": "스쿨푸드 딜리버리 논현압구정점", "pickup_addr": "서울특별시 강남구 봉은사로37길 7-7", "zone": "논현동", "total": 8, "avg_fee": 5690, "dests": [["서울 강남구 논현로63길 16", 1], ["서울 강남구 압구정로29길 51", 1], ["서울 강남구 논현로134길 12", 1]]}, {"shop": "메가엠지씨커피 학동사거리점", "pickup_addr": "서울특별시 강남구 선릉로 752", "zone": "청담동", "total": 7, "avg_fee": 5429, "dests": [["서울 강남구 도산대로45길 10-6", 1], ["서울 강남구 봉은사로47길 57", 1], ["서울 강남구 삼성로115길 16-11", 1]]}, {"shop": "청담과 청담동1% 과일제작소", "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동", "total": 7, "avg_fee": 5466, "dests": [["서울 강남구 압구정로 151", 1], ["서울 강남구 논현로163길 13-3", 1], ["서울 강남구 봉은사로37길 45-8", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 6, "avg_fee": 6210, "dests": [["서울 강남구 도산대로6길 9", 1], ["서울 강남구 학동로81길 9 라테라스청담", 1], ["서울 강남구 선릉로138길 34", 1]]}], "2": [{"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 36, "avg_fee": 6081, "dests": [["언주로30길 56", 2], ["선릉로 120", 2], ["삼성로 212 은마아파트", 2]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 31, "avg_fee": 5364, "dests": [["역삼로 532", 2], ["언주로 557", 1], ["학동로20길 63-6", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 29, "avg_fee": 5536, "dests": [["압구정로 151", 4], ["강남대로97길 49-9 구름집", 2], ["압구정로61길 37", 2]]}, {"shop": "매드피자 강남점", "pickup_addr": "서울특별시 강남구 논현로102길 12", "zone": "역삼동", "total": 10, "avg_fee": 6612, "dests": [["서울 강남구 논현로 205 도곡한신아파트 1동", 1], ["서울 강남구 논현로115길 69", 1], ["서울 강남구 언주로30길 26", 1]]}, {"shop": "도원반점 논현본점", "pickup_addr": "서울특별시 강남구 학동로20길 22", "zone": "논현동", "total": 9, "avg_fee": 6371, "dests": [["서울 강남구 학동로20길 63-5", 1], ["서울 강남구 학동로18길 19", 1], ["서울 강남구 선릉로76길 5-5", 1]]}, {"shop": "동대문엽기떡볶이 청담점", "pickup_addr": "서울특별시 강남구 도산대로89길 3", "zone": "청담동", "total": 9, "avg_fee": 5736, "dests": [["서울 강남구 압구정로 321", 2], ["서울 강남구 도산대로 216", 1], ["서울 강남구 봉은사로108길 3-12", 1]]}, {"shop": "처갓집양념치킨 삼성점", "pickup_addr": "서울특별시 강남구 삼성로103길 12", "zone": "삼성동", "total": 8, "avg_fee": 5805, "dests": [["서울 강남구 선릉로82길 29", 1], ["서울 강남구 선릉로86길 31 롯데골드로즈2차", 1], ["서울 강남구 논현로121길 33", 1]]}, {"shop": "삐삠빱 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 6051, "dests": [["서울 강남구 강남대로 328 강남역쉐르빌오피스텔", 1], ["서울 서초구 서운로 104", 1], ["서울 강남구 압구정로 113", 1]]}, {"shop": "BHC 선릉역점", "pickup_addr": "서울특별시 강남구 선릉로82길 23", "zone": "대치동", "total": 6, "avg_fee": 6087, "dests": [["서울 강남구 역삼로 555", 1], ["서울 강남구 영동대로 506", 1], ["서울 강남구 삼성로72길 12", 1]]}, {"shop": "청담족발 강남점", "pickup_addr": "서울특별시 강남구 논현로95길 29-5", "zone": "역삼동", "total": 6, "avg_fee": 7400, "dests": [["서울 강남구 압구정로 321", 1], ["서울 강남구 테헤란로16길 36", 1], ["서울 강남구 학동로 168 N168오피스텔", 1]]}], "3": [{"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 33, "avg_fee": 3773, "dests": [["논현로102길 58", 1], ["선릉로129길 13-3", 1], ["언주로104길 31", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 19, "avg_fee": 4755, "dests": [["서울 강남구 테헤란로37길 13-11 역삼인트로호텔", 1], ["서울 강남구 삼성로 605", 1], ["서울 강남구 논현로111길 39", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 19, "avg_fee": 4331, "dests": [["강남대로99길 29-7", 2], ["도산대로 546", 1], ["도산대로59길 24", 1]]}, {"shop": "교촌치킨 강남역점", "pickup_addr": "서울특별시 강남구 강남대로98길 11", "zone": "역삼동", "total": 15, "avg_fee": 5001, "dests": [["서울 강남구 봉은사로43길 45", 1], ["서울 강남구 언주로 641 펜트힐루논현오피스텔", 1], ["서울 강남구 학동로50길 15", 1]]}, {"shop": "청담과 청담동1% 과일제작소", "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동", "total": 14, "avg_fee": 4879, "dests": [["서울 강남구 도산대로30길 16-1", 1], ["서울 강남구 논현로 661 기린힐스", 1], ["서울 강남구 도산대로66길 51", 1]]}, {"shop": "매드피자 강남점", "pickup_addr": "서울특별시 강남구 논현로102길 12", "zone": "역삼동", "total": 13, "avg_fee": 5034, "dests": [["서울 서초구 주흥11길 38-4", 1], ["서울 서초구 강남대로51길 10", 1], ["서울 서초구 주흥9길 26-26", 1]]}, {"shop": "BHC 역삼점", "pickup_addr": "서울특별시 강남구 논현로85길 52", "zone": "역삼동", "total": 13, "avg_fee": 4048, "dests": [["서울 강남구 논현로 661", 1], ["서울 강남구 선릉로90길 46", 1], ["서울 강남구 봉은사로22길 61", 1]]}, {"shop": "ASAP PIZZA 강남점", "pickup_addr": "서울특별시 강남구 봉은사로37길 43", "zone": "논현동", "total": 13, "avg_fee": 4437, "dests": [["서울 서초구 서초중앙로 206", 1], ["서울 강남구 언주로 556", 1], ["서울 강남구 테헤란로37길 37", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 12, "avg_fee": 4693, "dests": [["서울 강남구 테헤란로28길 3-6 루미에르호텔", 1], ["서울 서초구 잠원로14길 23", 1], ["서울 강남구 테헤란로7길 8", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 10, "avg_fee": 5396, "dests": [["일원로14길 25", 1], ["논현로26길 56", 1], ["테헤란로 310 두꺼비빌딩", 1]]}]}};
+const DATA = {"date": "2026-07-12", "slot_names": ["아침·점심(06~13시)", "오후논피크(13~17시)", "저녁피크(17~20시)", "야간논피크(20~06시)"], "slots": {"0": [{"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 42, "avg_fee": 4623, "dests": [["압구정로 151", 5], ["압구정로39길 58", 2], ["영동대로142길 16", 2], ["압구정로 201", 2], ["학동로77길 27", 2], ["압구정로29길 71", 2], ["도산대로54길 14", 1], ["도산대로55길 20", 1], ["학동로 409", 1], ["압구정로33길 70", 1], ["영동대로138길 12", 1], ["도산대로78길 13", 1], ["압구정로 343 갤러리아백화점 명품관WEST 지하주차장", 1], ["언주로167길 15", 1], ["도산대로81길 26", 1], ["삼성로149길 7", 1], ["압구정로11길 17", 1], ["나루터로 60", 1], ["학동로 165", 1], ["신반포로45길 85", 1], ["도산대로55길 47", 1], ["도산대로81길 61", 1], ["논현로159길 46-4", 1], ["압구정로29길 57", 1], ["도산대로85길 53", 1], ["도산대로23길 35", 1], ["도산대로62길 16", 1], ["압구정로 321", 1], ["도산대로 442 피엔폴루스", 1], ["압구정로77길 42", 1], ["압구정로 401", 1], ["도산대로30길 18", 1], ["압구정로 313", 1]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 41, "avg_fee": 4520, "dests": [["학동로68길 29 삼성현대힐스테이트1단지아파트", 2], ["봉은사로 134 도미인서울강남호텔", 1], ["선릉로86길 31 롯데골드로즈2차", 1], ["강남대로120길 20", 1], ["봉은사로29길 6-6", 1], ["삼성로64길 5", 1], ["테헤란로5길 28", 1], ["도곡로 503", 1], ["논현로116길 18", 1], ["봉은사로25길 41", 1], ["테헤란로37길 37", 1], ["봉은사로30길 59", 1], ["선릉로126길 22", 1], ["강남대로120길 71", 1], ["학동로68길 29", 1], ["봉은사로21길 12", 1], ["언주로 615 논현아이파크아파트", 1], ["논현로 661", 1], ["강남대로120길 21", 1], ["언주로130길 30", 1], ["언주로114길 15-10", 1], ["도곡로93길 12 대치래미안하이스턴아파트 202동", 1], ["논현로121길 58", 1], ["봉은사로21길 20", 1], ["논현로113길 36", 1], ["학동로26길 82", 1], ["논현로126길 20", 1], ["봉은사로 516", 1], ["삼성로75길 27-1", 1], ["봉은사로 140", 1], ["언주로103길 48", 1], ["학동로26길 76", 1], ["테헤란로 429 원방빌딩", 1], ["언주로 565", 1], ["테헤란로7길 8", 1], ["언주로 615", 1], ["논현로94길 29-15", 1], ["테헤란로53길 42", 1], ["봉은사로44길 57", 1], ["테헤란로13길 39", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 14, "avg_fee": 5800, "dests": [["삼성로 150", 2], ["도곡로37길 48", 1], ["개포로 310", 1], ["테헤란로14길 13", 1], ["개포로 311", 1], ["선릉로64길 32", 1], ["삼성로51길 37", 1], ["논현로 205", 1], ["역삼로 314", 1], ["도곡로78길 22", 1], ["선릉로64길 11-16", 1], ["테헤란로14길 8", 1], ["삼성로51길 37 래미안대치팰리스1단지아파트", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 12, "avg_fee": 4738, "dests": [["서울 서초구 사평대로55길 97-6", 1], ["서울 강남구 언주로 615 논현아이파크아파트", 1], ["서울 강남구 학동로26길 43-1", 1], ["서울 강남구 학동로38길 36", 1], ["서울 강남구 언주로 726", 1], ["서울 강남구 언주로104길 29", 1], ["서울 강남구 학동로2길 50", 1], ["서울 서초구 강남대로85길 5", 1], ["서울 강남구 강남대로124길 68", 1], ["서울 강남구 학동로28길 21", 1], ["서울 강남구 언주로 615", 1], ["서울 강남구 테헤란로 152", 1]]}, {"shop": "평화로 부대찌개&부대볶음 강남점", "pickup_addr": "서울특별시 강남구 언주로93길 21", "zone": "역삼동", "total": 7, "avg_fee": 5400, "dests": [["서울 강남구 논현로72길 33", 1], ["서울 강남구 삼성로51길 37 래미안대치팰리스1단지아파트", 1], ["서울 서초구 사평대로56길 8", 1], ["서울 강남구 논현로115길 65", 1], ["서울 서초구 효령로 429", 1], ["서울 강남구 영동대로138길 12 청담자이아파트 102동", 1], ["서울 강남구 강남대로122길 45", 1]]}, {"shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동", "total": 7, "avg_fee": 5171, "dests": [["서울 강남구 개포로 310 디에이치퍼스티어아이파크아파트", 1], ["서울 강남구 봉은사로21길 57-3", 1], ["서울 서초구 언남11길 19", 1], ["서울 강남구 언주로86길 7", 1], ["서울 강남구 역삼로11길 6", 1], ["서울 강남구 압구정로4길 14-10", 1], ["서울 강남구 강남대로94길 83", 1]]}, {"shop": "혜준당 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 4649, "dests": [["서울 강남구 봉은사로51길 43", 1], ["서울 강남구 학동로30길 37-20", 1], ["서울 서초구 주흥9길 14-17", 1], ["서울 강남구 테헤란로64길 13", 1], ["서울 강남구 언주로86길 11", 1], ["서울 강남구 언주로 720", 1], ["서울 강남구 도산대로78길 34", 1]]}, {"shop": "영천 얼큰 돼지국밥&해장국밥", "pickup_addr": "서울특별시 강남구 봉은사로30길 73", "zone": "역삼동", "total": 7, "avg_fee": 5377, "dests": [["서울 강남구 남부순환로365길 56", 1], ["서울 강남구 봉은사로84길 10-1", 1], ["서울 강남구 논현로118길 11", 1], ["서울 강남구 도산대로4길 19", 1], ["서울 강남구 테헤란로57길 26", 1], ["서울 강남구 삼성로67길 48", 1], ["서울 서초구 주흥10길 3", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 7, "avg_fee": 5317, "dests": [["서울 서초구 강남대로 365 도씨에빛1", 1], ["서울 강남구 테헤란로6길 26", 1], ["서울 강남구 선릉로126길 22", 1], ["서울 강남구 봉은사로69길 48", 1], ["서울 서초구 효령로 391 서초그랑자이아파트 105동", 1], ["서울 강남구 삼성로133길 7 VIP동물의료센터 청담점", 1], ["서울 강남구 강남대로 340 아이디헤어 강남대로점", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 6, "avg_fee": 5353, "dests": [["서울 강남구 학동로 607", 1], ["서울 강남구 선릉로82길 17", 1], ["서울 강남구 봉은사로43길 55", 1], ["서울 강남구 역삼로4길 16", 1], ["서울 강남구 선릉로 221", 1], ["서울 강남구 선릉로76길 5-10", 1]]}], "1": [{"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 31, "avg_fee": 4612, "dests": [["언주로98길 32", 1], ["봉은사로48길 49", 1], ["테헤란로64길 8", 1], ["삼성로112길 8", 1], ["봉은사로 140 신논현마에스트로", 1], ["테헤란로77길 46-1", 1], ["언주로 557", 1], ["영동대로 647 청담역푸르지오시티", 1], ["논현로 661 기린힐스", 1], ["논현로102길 40", 1], ["봉은사로73길 43", 1], ["봉은사로43길 6-4", 1], ["언주로98길 17-4", 1], ["봉은사로30길 24", 1], ["테헤란로63길 12", 1], ["선릉로100길 30", 1], ["삼성로120길 6 심포니하우스", 1], ["학동로30길 43-9", 1], ["봉은사로 448", 1], ["학동로44길 47-5", 1], ["강남대로100길 30", 1], ["봉은사로 449", 1], ["학동로64길 7", 1], ["논현로123길 52", 1], ["언주로98길 36 루트원레지던스", 1], ["봉은사로81길 8", 1], ["봉은사로 447", 1], ["봉은사로 507 우림보보카운티", 1], ["봉은사로48길 43-9", 1], ["테헤란로53길 63 드림필주택", 1], ["테헤란로5길 53", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 29, "avg_fee": 4769, "dests": [["도산대로87길 18", 2], ["도산대로72길 36", 2], ["논현로155길 28", 2], ["압구정로61길 37", 2], ["압구정로2길 20 래미안신사아파트", 1], ["도산대로67길 13-3", 1], ["영동대로142길 16", 1], ["도산대로 419", 1], ["압구정로80길 37 이에스빌딩", 1], ["논현로154길 12 압구정아인빌", 1], ["도산대로85길 39-9", 1], ["도산대로92길 10", 1], ["도산대로23길 35", 1], ["언주로150길 50", 1], ["언주로165길 7-10", 1], ["압구정로42길 25-11", 1], ["압구정로79길 72 상지리츠빌카일룸3차", 1], ["도산대로70길 43", 1], ["압구정로36길 50", 1], ["학동로73길 13 청담스위트아파트", 1], ["도산대로85길 52", 1], ["강남대로158길 11", 1], ["도산대로4길 14-3", 1], ["도산대로19길 10", 1], ["압구정로 321", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 11, "avg_fee": 5945, "dests": [["삼성로 14", 2], ["선릉로 222", 1], ["도곡로25길 32", 1], ["삼성로61길 11-2", 1], ["남부순환로379길 21", 1], ["광평로10길 50", 1], ["선릉로69길 20", 1], ["광평로10길 6 한솔마을라이프아파트 306동", 1], ["테헤란로14길 34", 1], ["역삼로70길 19-6", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 9, "avg_fee": 5922, "dests": [["서울 강남구 도산대로61길 4 순수 청담본점", 1], ["서울 강남구 봉은사로29길 25 토미빌228", 1], ["서울 강남구 봉은사로 524 웨스틴서울파르나스", 1], ["서울 서초구 남부순환로337가길 70", 1], ["서울 강남구 학동로28길 38", 1], ["서울 강남구 압구정로29길 57", 1], ["서울 강남구 역삼로 307-1", 1], ["서울 강남구 논현로161길 15-1", 1], ["서울 서초구 서초중앙로 96", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 8, "avg_fee": 5435, "dests": [["서울 강남구 언주로87길 11", 1], ["서울 강남구 역삼로34길 15", 1], ["서울 강남구 역삼로 307-1 역삼센트럴2차아이파크", 1], ["서울 강남구 강남대로146길 7-12", 1], ["서울 서초구 사임당로 115", 1], ["서울 강남구 봉은사로44길 48", 1], ["서울 강남구 삼성로85길 33 현대썬앤빌테헤란", 1], ["서울 강남구 학동로4길 32-1", 1]]}, {"shop": "처갓집양념치킨 삼성점", "pickup_addr": "서울특별시 강남구 삼성로103길 12", "zone": "삼성동", "total": 8, "avg_fee": 5160, "dests": [["서울 강남구 학동로87길 9", 1], ["서울 강남구 도산대로85길 30 청담신원아침도시마인", 1], ["서울 강남구 선릉로89길 16 능현오피스텔", 1], ["서울 강남구 학동로68길 29", 1], ["서울 강남구 언주로 615", 1], ["서울 강남구 학동로 432", 1], ["서울 강남구 삼성로76길 20", 1], ["서울 강남구 삼성로107길 12-6", 1]]}, {"shop": "스쿨푸드 딜리버리 논현압구정점", "pickup_addr": "서울특별시 강남구 봉은사로37길 7-7", "zone": "논현동", "total": 8, "avg_fee": 5690, "dests": [["서울 강남구 논현로63길 16", 1], ["서울 강남구 압구정로29길 51", 1], ["서울 강남구 논현로134길 12", 1], ["서울 강남구 논현로68길 25", 1], ["서울 강남구 학동로 405", 1], ["서울 강남구 학동로4길 48", 1], ["서울 강남구 논현로115길 37", 1], ["서울 강남구 언주로89길 5", 1]]}, {"shop": "메가엠지씨커피 학동사거리점", "pickup_addr": "서울특별시 강남구 선릉로 752", "zone": "청담동", "total": 7, "avg_fee": 5429, "dests": [["서울 강남구 도산대로45길 10-6", 1], ["서울 강남구 봉은사로47길 57", 1], ["서울 강남구 삼성로115길 16-11", 1], ["서울 강남구 도산대로 457 쵸이닷", 1], ["서울 강남구 테헤란로55길 49", 1], ["서울 강남구 언주로 726 두산빌딩", 1], ["서울 강남구 봉은사로20길 14", 1]]}, {"shop": "청담과 청담동1% 과일제작소", "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동", "total": 7, "avg_fee": 5466, "dests": [["서울 강남구 압구정로 151", 1], ["서울 강남구 논현로163길 13-3", 1], ["서울 강남구 봉은사로37길 45-8", 1], ["서울 강남구 삼성로 629", 1], ["서울 강남구 학동로68길 29", 1], ["서울 강남구 학동로97길 74", 1], ["서울 강남구 압구정로 313", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 6, "avg_fee": 6210, "dests": [["서울 강남구 도산대로6길 9", 1], ["서울 강남구 학동로81길 9 라테라스청담", 1], ["서울 강남구 선릉로138길 34", 1], ["서울 강남구 봉은사로 125", 1], ["서울 강남구 봉은사로30길 36", 1], ["서울 서초구 서초대로77길 62", 1]]}], "2": [{"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 36, "avg_fee": 6081, "dests": [["언주로30길 56", 2], ["선릉로 120", 2], ["삼성로 212 은마아파트", 2], ["개포로109길 9", 2], ["삼성로 14", 1], ["테헤란로34길 33-5", 1], ["선릉로72길 15", 1], ["선릉로69길 19", 1], ["도곡로78길 22", 1], ["언주로 427", 1], ["개포로109길 21", 1], ["언주로 323", 1], ["선릉로 8", 1], ["개포로 310", 1], ["도곡로7길 22", 1], ["남부순환로373길 44", 1], ["광평로19길 10", 1], ["언주로 332", 1], ["개포로 623 대청타워", 1], ["언주로30길 57", 1], ["논현로66길 29", 1], ["선릉로 222 대치아이파크아파트 107동", 1], ["강남대로 338", 1], ["개포로 411", 1], ["개포로 307", 1], ["삼성로 150", 1], ["삼성로63길 49-5", 1], ["논현로68길 22", 1], ["삼성로 151", 1], ["논현로 205", 1], ["역삼로34길 5", 1], ["선릉로 222", 1]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 31, "avg_fee": 5364, "dests": [["역삼로 532", 2], ["언주로 557", 1], ["학동로20길 63-6", 1], ["봉은사로52길 5", 1], ["논현로104길 6", 1], ["삼성로64길 12", 1], ["학동로38길 22", 1], ["강남대로94길 54", 1], ["학동로68길 29", 1], ["테헤란로57길 37", 1], ["삼성로 651 래미안라클래시아파트", 1], ["봉은사로50길 37", 1], ["봉은사로30길 69", 1], ["테헤란로7길 8", 1], ["학동로 432", 1], ["봉은사로13길 26", 1], ["논현로97길 23", 1], ["강남대로94길 51-4", 1], ["역삼로67길 22", 1], ["봉은사로 461", 1], ["봉은사로21길 32", 1], ["테헤란로83길 14", 1], ["봉은사로71길 13 상아빌라트", 1], ["선릉로94길 15", 1], ["강남대로124길 23", 1], ["테헤란로64길 13 선릉역풍림아이원레몬", 1], ["언주로93길 28-6", 1], ["삼성로111길 8", 1], ["봉은사로 174", 1], ["강남대로128길 44-7", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 29, "avg_fee": 5536, "dests": [["압구정로 151", 4], ["강남대로97길 49-9 구름집", 2], ["압구정로61길 37", 2], ["도산대로 225 현대썬앤빌", 1], ["도산대로99길 27-3", 1], ["강남대로93길 23-2", 1], ["선릉로157길 13-5", 1], ["도산대로 446", 1], ["압구정로11길 17", 1], ["도산대로 208", 1], ["압구정로32길 31 청실맨션1차", 1], ["학동로21길 15", 1], ["학동로 607 청담르엘아파트", 1], ["도산대로 237", 1], ["압구정로 313", 1], ["강남대로109길 73-23", 1], ["영동대로138길 12", 1], ["영동대로138길 12 청담자이아파트 102동", 1], ["학동로21길 19", 1], ["압구정로 321", 1], ["학동로55길 12-1", 1], ["압구정로29길 57", 1], ["도산대로15길 9 카츠클럽", 1], ["논현로168길 45", 1]]}, {"shop": "매드피자 강남점", "pickup_addr": "서울특별시 강남구 논현로102길 12", "zone": "역삼동", "total": 10, "avg_fee": 6612, "dests": [["서울 강남구 논현로 205 도곡한신아파트 1동", 1], ["서울 강남구 논현로115길 69", 1], ["서울 강남구 언주로30길 26", 1], ["서울 강남구 테헤란로22길 63-8", 1], ["서울 강남구 남부순환로 2807 숙명여자고등학교", 1], ["서울 서초구 주흥길 72-7", 1], ["서울 강남구 강남대로 240 SK허브프리모", 1], ["서울 강남구 학동로 607", 1], ["서울 강남구 강남대로146길 6", 1], ["서울 강남구 언주로93길 22-3", 1]]}, {"shop": "도원반점 논현본점", "pickup_addr": "서울특별시 강남구 학동로20길 22", "zone": "논현동", "total": 9, "avg_fee": 6371, "dests": [["서울 강남구 학동로20길 63-5", 1], ["서울 강남구 학동로18길 19", 1], ["서울 강남구 선릉로76길 5-5", 1], ["서울 강남구 봉은사로 138", 1], ["서울 서초구 신반포로 270", 1], ["서울 강남구 삼성로85길 42", 1], ["서울 강남구 학동로20길 19-6", 1], ["서울 서초구 서초중앙로 188 아크로비스타", 1], ["서울 서초구 서운로 201 서초푸르지오써밋1단지아파트", 1]]}, {"shop": "동대문엽기떡볶이 청담점", "pickup_addr": "서울특별시 강남구 도산대로89길 3", "zone": "청담동", "total": 9, "avg_fee": 5736, "dests": [["서울 강남구 압구정로 321", 2], ["서울 강남구 도산대로 216", 1], ["서울 강남구 봉은사로108길 3-12", 1], ["서울 강남구 도산대로78길 40-2", 1], ["서울 강남구 도산대로81길 25", 1], ["서울 강남구 선릉로132길 71", 1], ["서울 강남구 학동로97길 31", 1], ["서울 강남구 도산대로96길 39", 1]]}, {"shop": "처갓집양념치킨 삼성점", "pickup_addr": "서울특별시 강남구 삼성로103길 12", "zone": "삼성동", "total": 8, "avg_fee": 5805, "dests": [["서울 강남구 선릉로82길 29", 1], ["서울 강남구 선릉로86길 31 롯데골드로즈2차", 1], ["서울 강남구 논현로121길 33", 1], ["서울 강남구 봉은사로 140 신논현마에스트로", 1], ["서울 강남구 언주로87길 50", 1], ["서울 강남구 삼성로103길 12", 1], ["서울 강남구 학동로77길 27", 1], ["서울 강남구 삼성로 606", 1]]}, {"shop": "삐삠빱 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 6051, "dests": [["서울 강남구 강남대로 328 강남역쉐르빌오피스텔", 1], ["서울 서초구 서운로 104", 1], ["서울 강남구 압구정로 113", 1], ["서울 강남구 논현로111길 14", 1], ["서울 강남구 도산대로38길 56", 1], ["서울 강남구 봉은사로 174 역삼노블루체언주오피스텔", 1], ["서울 강남구 봉은사로68길 19", 1]]}, {"shop": "BHC 선릉역점", "pickup_addr": "서울특별시 강남구 선릉로82길 23", "zone": "대치동", "total": 6, "avg_fee": 6087, "dests": [["서울 강남구 역삼로 555", 1], ["서울 강남구 영동대로 506", 1], ["서울 강남구 삼성로72길 12", 1], ["서울 강남구 봉은사로74길 18", 1], ["서울 강남구 삼성로81길 28", 1], ["서울 송파구 백제고분로7길 23-5", 1]]}, {"shop": "청담족발 강남점", "pickup_addr": "서울특별시 강남구 논현로95길 29-5", "zone": "역삼동", "total": 6, "avg_fee": 7400, "dests": [["서울 강남구 압구정로 321", 1], ["서울 강남구 테헤란로16길 36", 1], ["서울 강남구 학동로 168 N168오피스텔", 1], ["서울 강남구 선릉로126길 22", 1], ["서울 서초구 신반포로33길 15", 1], ["서울 강남구 논현로155길 27", 1]]}], "3": [{"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 33, "avg_fee": 3773, "dests": [["논현로102길 58", 1], ["선릉로129길 13-3", 1], ["언주로104길 31", 1], ["삼성로115길 47-8", 1], ["강남대로116길 36", 1], ["선릉로120길 14", 1], ["봉은사로48길 49", 1], ["선릉로86길 31", 1], ["학동로46길 38", 1], ["선릉로76길 5-12", 1], ["논현로121길 38", 1], ["선릉로107길 14", 1], ["학동로42길 67-14", 1], ["학동로4길 43", 1], ["봉은사로44길 39 슈니트PPF 본사", 1], ["테헤란로53길 65", 1], ["언주로130길 30 논현동양파라곤아파트 102동", 1], ["봉은사로55길 18", 1], ["봉은사로44길 71", 1], ["논현로123길 13-9", 1], ["봉은사로 170 강남헤븐리치더써밋761", 1], ["학동로26길 41", 1], ["테헤란로64길 8", 1], ["선릉로130길 20", 1], ["선릉로76길 9-13", 1], ["삼성로118길 14", 1], ["테헤란로70길 14-6", 1], ["삼성로 417", 1], ["학동로18길 44-8", 1], ["선릉로103길 26", 1], ["선릉로107길 23-5", 1], ["봉은사로48길 44-9", 1], ["학동로28길 20", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 19, "avg_fee": 4755, "dests": [["서울 강남구 테헤란로37길 13-11 역삼인트로호텔", 1], ["서울 강남구 삼성로 605", 1], ["서울 강남구 논현로111길 39", 1], ["서울 강남구 논현로98길 26-6", 1], ["서울 강남구 삼성로92길 13", 1], ["서울 강남구 봉은사로68길 65", 1], ["서울 강남구 논현로85길 58", 1], ["서울 강남구 논현로94길 29-8", 1], ["서울 강남구 학동로20길 27", 1], ["서울 강남구 논현로 645 엘리에나호텔", 1], ["서울 강남구 도산대로83길 40", 1], ["서울 강남구 선릉로 657", 1], ["서울 강남구 논현로75길 26", 1], ["서울 강남구 도산대로78길 20", 1], ["서울 강남구 도곡로69길 13", 1], ["서울 강남구 선릉로86길 31", 1], ["서울 강남구 강남대로126길 81", 1], ["서울 강남구 테헤란로51길 38", 1], ["서울 강남구 언주로85길 27 오월호텔", 1]]}, {"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 19, "avg_fee": 4331, "dests": [["강남대로99길 29-7", 2], ["도산대로 546", 1], ["도산대로59길 24", 1], ["압구정로29길 57", 1], ["학동로31길 34", 1], ["도산대로12길 17-5", 1], ["압구정로22길 29", 1], ["압구정로 151", 1], ["압구정로61길 37", 1], ["압구정로 201", 1], ["압구정로 313 압구정한양4차아파트", 1], ["학동로97길 51", 1], ["강남대로97길 62", 1], ["도산대로15길 21", 1], ["압구정로18길 7", 1], ["압구정로42길 25-9", 1], ["압구정로29길 68", 1], ["도산대로46길 11", 1]]}, {"shop": "교촌치킨 강남역점", "pickup_addr": "서울특별시 강남구 강남대로98길 11", "zone": "역삼동", "total": 15, "avg_fee": 5001, "dests": [["서울 강남구 봉은사로43길 45", 1], ["서울 강남구 언주로 641 펜트힐루논현오피스텔", 1], ["서울 강남구 학동로50길 15", 1], ["서울 강남구 테헤란로33길 12", 1], ["서울 강남구 언주로100길 16", 1], ["서울 강남구 강남대로156길 34", 1], ["서울 서초구 서운로 201 서초푸르지오써밋1단지아파트", 1], ["서울 강남구 학동로30길 43-10", 1], ["서울 강남구 봉은사로21길 49-6", 1], ["서울 강남구 도산대로4길 14-5", 1], ["서울 강남구 언주로98길 39-8", 1], ["서울 강남구 학동로 165", 1], ["서울 강남구 봉은사로20길 42", 1], ["서울 강남구 봉은사로49길 38", 1], ["서울 서초구 반포대로18길 62", 1]]}, {"shop": "청담과 청담동1% 과일제작소", "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동", "total": 14, "avg_fee": 4879, "dests": [["서울 강남구 도산대로30길 16-1", 1], ["서울 강남구 논현로 661 기린힐스", 1], ["서울 강남구 도산대로66길 51", 1], ["서울 강남구 논현로97길 23-5", 1], ["서울 강남구 테헤란로51길 49", 1], ["서울 강남구 선릉로126길 22 삼성롯데캐슬프레미어아파트 111동", 1], ["서울 강남구 학동로18길 44-11", 1], ["서울 강남구 테헤란로51길 40", 1], ["서울 강남구 역삼로1길 20", 1], ["서울 강남구 봉은사로 170", 1], ["서울 강남구 봉은사로 302", 1], ["서울 강남구 봉은사로73길 17-3", 1], ["서울 강남구 테헤란로37길 13-13 녹스호텔", 1], ["서울 서초구 사평대로53길 36", 1]]}, {"shop": "매드피자 강남점", "pickup_addr": "서울특별시 강남구 논현로102길 12", "zone": "역삼동", "total": 13, "avg_fee": 5034, "dests": [["서울 서초구 주흥11길 38-4", 1], ["서울 서초구 강남대로51길 10", 1], ["서울 서초구 주흥9길 26-26", 1], ["서울 강남구 삼성로147길 24-3", 1], ["서울 강남구 봉은사로48길 52 백운제", 1], ["서울 강남구 봉은사로 307", 1], ["서울 서초구 잠원로 217", 1], ["서울 강남구 언주로87길 41", 1], ["서울 강남구 강남대로112길 20 호텔왈츠", 1], ["서울 강남구 언주로 316", 1], ["서울 서초구 서초대로 357", 1], ["서울 강남구 삼성로75길 26-8", 1], ["서울 강남구 강남대로128길 26", 1]]}, {"shop": "BHC 역삼점", "pickup_addr": "서울특별시 강남구 논현로85길 52", "zone": "역삼동", "total": 13, "avg_fee": 4048, "dests": [["서울 강남구 논현로 661", 1], ["서울 강남구 선릉로90길 46", 1], ["서울 강남구 봉은사로22길 61", 1], ["서울 강남구 역삼로10길 11", 1], ["서울 강남구 봉은사로 134 도미인서울강남호텔", 1], ["서울 강남구 논현로26길 23", 1], ["서울 강남구 역삼로10길 13", 1], ["서울 강남구 역삼로3길 7", 1], ["서울 강남구 논현로104길 6", 1], ["서울 강남구 논현로116길 14", 1], ["서울 강남구 학동로20길 19-6", 1], ["서울 강남구 테헤란로5길 41", 1], ["서울 서초구 주흥길 30-4", 1]]}, {"shop": "ASAP PIZZA 강남점", "pickup_addr": "서울특별시 강남구 봉은사로37길 43", "zone": "논현동", "total": 13, "avg_fee": 4437, "dests": [["서울 서초구 서초중앙로 206", 1], ["서울 강남구 언주로 556", 1], ["서울 강남구 테헤란로37길 37", 1], ["서울 강남구 압구정로2길 6", 1], ["서울 서초구 잠원로 37-48", 1], ["서울 강남구 봉은사로 307", 1], ["서울 강남구 논현로146길 37", 1], ["서울 강남구 선릉로94길 15", 1], ["서울 강남구 학동로20길 28", 1], ["서울 강남구 논현로79길 23-7", 1], ["서울 강남구 역삼로25길 34", 1], ["서울 서초구 신반포로42길 14", 1], ["서울 강남구 논현로123길 54", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 12, "avg_fee": 4693, "dests": [["서울 강남구 테헤란로28길 3-6 루미에르호텔", 1], ["서울 서초구 잠원로14길 23", 1], ["서울 강남구 테헤란로7길 8", 1], ["서울 강남구 선릉로85길 6 호텔뉴브", 1], ["서울 강남구 삼성로 212 은마아파트 18동", 1], ["서울 서초구 사평대로53길 51-1", 1], ["서울 강남구 논현로128길 20", 1], ["서울 강남구 테헤란로 428", 1], ["서울 강남구 테헤란로4길 6", 1], ["서울 강남구 삼성로75길 15", 1], ["서울 서초구 사평대로55길 140", 1], ["서울 강남구 삼성로103길 11-7", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 10, "avg_fee": 5396, "dests": [["일원로14길 25", 1], ["논현로26길 56", 1], ["테헤란로 310 두꺼비빌딩", 1], ["광평로19길 10", 1], ["언주로86길 11", 1], ["테헤란로20길 34", 1], ["선릉로 206", 1], ["일원로 120 샘터마을아파트", 1], ["남부순환로375길 10", 1], ["역삼로12길 6", 1]]}]}};
 
-
-const CACHE_KEY = 'geo_slot_v1';
+const CACHE_KEY = 'geo_slot_v2';
 const SLOT_COLORS = ['#F59E0B','#10B981','#FF6B35','#7F77DD'];
 const ZONE_COLORS = {
   '역삼동':'#FF6B35','논현동':'#F59E0B','대치동':'#10B981',
@@ -104,7 +96,7 @@ try{ cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}'); }catch(e){}
 function saveCache(){ try{localStorage.setItem(CACHE_KEY,JSON.stringify(cache));}catch(e){} }
 
 map = new naver.maps.Map('map',{
-  center: new naver.maps.LatLng(37.505,127.025), zoom:13, scaleControl:false,
+  center:new naver.maps.LatLng(37.505,127.025), zoom:13, scaleControl:false,
 });
 
 function gcOne(addr){
@@ -123,6 +115,7 @@ function gcOne(addr){
 async function gcBatch(addrs){
   const q=addrs.filter(a=>a&&!cache[a]);
   if(!q.length) return;
+  // 5개 동시 병렬
   const workers=Array(Math.min(5,q.length)).fill(null).map(async()=>{
     while(q.length>0){ const a=q.shift(); try{await gcOne(a);}catch(e){} }
   });
@@ -130,7 +123,10 @@ async function gcBatch(addrs){
   saveCache();
 }
 
-function clr(){ AM.forEach(m=>m.setMap(null)); AL.forEach(l=>l.setMap(null)); IW.forEach(w=>w.close()); AM=[];AL=[];IW=[]; }
+function clr(){
+  AM.forEach(m=>m.setMap(null)); AL.forEach(l=>l.setMap(null)); IW.forEach(w=>w.close());
+  AM=[];AL=[];IW=[];
+}
 
 function setOverlay(msg,color){
   const el=document.getElementById('status-overlay');
@@ -143,8 +139,9 @@ function getShops(){ return DATA.slots[currentSlot]||[]; }
 function renderShopList(){
   const color=SLOT_COLORS[currentSlot];
   document.getElementById('shop-list').innerHTML=getShops().map((s,i)=>`
-    <div class="shop-item ${selectedIdx===i?'active':''}" onclick="selectByIdx(${i})"
-         style="${selectedIdx===i?'border-left-color:'+color:''}">
+    <div class="shop-item ${selectedIdx===i?'active':''}"
+         onclick="selectByIdx(${i})"
+         style="${selectedIdx===i?'border-left-color:'+color+';':'' }">
       <div class="shop-name">${s.shop}</div>
       <div class="shop-sub">
         <span class="shop-cnt" style="color:${color}">${s.total}건</span>
@@ -156,13 +153,16 @@ function renderShopList(){
 function renderDestList(shop){
   if(!shop){
     document.getElementById('dest-list').innerHTML='<div style="padding:12px;font-size:11px;color:#444">← 상점 클릭</div>';
+    document.getElementById('dest-panel-title').textContent='배달지 전체';
     return;
   }
   const maxCnt=Math.max(...shop.dests.map(d=>d[1]));
+  document.getElementById('dest-panel-title').textContent=`배달지 ${shop.dests.length}곳`;
   document.getElementById('dest-list').innerHTML=shop.dests.map(([addr,cnt],i)=>`
     <div class="dest-item" onclick="focusDest(${currentSlot},${selectedIdx},${i})">
       <div class="dest-addr" title="${addr}">${addr.replace(/서울특별시 |서울 /g,'')}</div>
-      <div class="dest-cnt">${cnt}건 (${Math.round(cnt/maxCnt*100)}%)</div>
+      <div class="dest-cnt">${cnt}건</div>
+      <div class="dest-bar"><div class="dest-bar-fill" style="width:${Math.round(cnt/maxCnt*100)}%"></div></div>
     </div>`).join('');
 }
 
@@ -177,11 +177,11 @@ async function selectByIdx(idx){
   const needGeo=allAddrs.filter(a=>!cache[a]);
 
   if(needGeo.length>0){
-    setOverlay(`⏳ 변환 중 (${needGeo.length}개)...`,'#F59E0B');
+    setOverlay(`⏳ 변환 중 (${needGeo.length}개 주소)...`, '#F59E0B');
     await gcBatch(needGeo);
     setOverlay(null);
   } else {
-    setOverlay('⚡ 즉시 로딩','#10B981');
+    setOverlay('⚡ 즉시 로딩 (캐시)','#10B981');
     setTimeout(()=>setOverlay(null),1000);
   }
 
@@ -190,14 +190,13 @@ async function selectByIdx(idx){
   document.getElementById('statusbar').innerHTML=
     `<b style="color:${SLOT_COLORS[currentSlot]}">${DATA.slot_names[currentSlot]}</b>
      &nbsp;|&nbsp; <b>${shop.shop}</b>
-     &nbsp; ${shop.total}건 &nbsp; 평균 ${shop.avg_fee.toLocaleString()}원
+     &nbsp; 총 ${shop.total}건 &nbsp; 배달지 ${shop.dests.length}곳
+     &nbsp; 평균 ${shop.avg_fee.toLocaleString()}원
      &nbsp; <span style="color:${zc(shop.zone)}">${shop.zone}</span>`;
 }
 
 function draw(shop){
-  const slotColor=SLOT_COLORS[currentSlot];
-  const zoneColor=zc(shop.zone);
-  const color=zoneColor;
+  const color=zc(shop.zone);
   const sp=cache[shop.pickup_addr]; if(!sp) return;
   const sll=ll(sp.lat,sp.lng);
   const maxCnt=Math.max(...shop.dests.map(d=>d[1]));
@@ -209,38 +208,39 @@ function draw(shop){
     anchor:new naver.maps.Point(0,24),
   }}));
 
-  shop.dests.forEach(([addr,cnt])=>{
+  shop.dests.forEach(([addr,cnt],i)=>{
     const dp=cache[addr]; if(!dp) return;
     const ratio=cnt/maxCnt;
     const dll=ll(dp.lat,dp.lng);
     valid.push(dp);
 
-    // 연결선
+    // 연결선 (건수 많을수록 굵고 진하게)
     AL.push(new naver.maps.Polyline({map,path:[sll,dll],
-      strokeColor:color, strokeWeight:Math.max(1.5,ratio*6),
-      strokeOpacity:0.15+ratio*0.7,
+      strokeColor:color,
+      strokeWeight:Math.max(1,ratio*5),
+      strokeOpacity:0.1+ratio*0.75,
     }));
 
-    // 화살표
+    // 화살표 (65% 지점)
     const ang=Math.atan2(dp.lng-sp.lng,dp.lat-sp.lat)*180/Math.PI;
     AM.push(new naver.maps.Marker({map,
       position:ll(sp.lat+(dp.lat-sp.lat)*0.65,sp.lng+(dp.lng-sp.lng)*0.65),
       icon:{
-        content:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};transform:rotate(${ang}deg);opacity:${0.4+ratio*0.5};pointer-events:none;"></div>`,
-        anchor:new naver.maps.Point(5,5),
+        content:`<div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:8px solid ${color};transform:rotate(${ang}deg);opacity:${0.3+ratio*0.6};pointer-events:none;"></div>`,
+        anchor:new naver.maps.Point(4,4),
       }
     }));
 
-    // 배달지 마커
-    const sz=Math.max(16,Math.round(14+ratio*14));
+    // 배달지 마커 (크기 = 건수 비례)
+    const sz=Math.max(14,Math.round(12+ratio*16));
     const dm=new naver.maps.Marker({map,position:dll,icon:{
-      content:`<div style="width:${sz}px;height:${sz}px;border-radius:4px;background:rgba(127,119,221,${0.2+ratio*0.7});border:2px solid #7F77DD;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;">${cnt}</div>`,
+      content:`<div style="width:${sz}px;height:${sz}px;border-radius:4px;background:rgba(127,119,221,${0.15+ratio*0.75});border:1.5px solid #7F77DD;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;">${cnt}</div>`,
       anchor:new naver.maps.Point(sz/2,sz/2),
     }});
 
     const iw=new naver.maps.InfoWindow({
       content:`<div style="background:#1a1a1a;border:1px solid ${color};border-radius:8px;padding:8px 12px;">
-        <div style="color:${color};font-weight:700;margin-bottom:3px">${cnt}건 배달 (${Math.round(ratio*100)}%)</div>
+        <div style="color:${color};font-weight:700;margin-bottom:3px">${cnt}건 (${Math.round(ratio*100)}%)</div>
         <div style="color:#ccc;font-size:11px">${addr.replace(/서울특별시 |서울 /g,'')}</div>
         <div style="color:#888;font-size:10px;margin-top:3px">← ${shop.shop.substring(0,15)}</div>
       </div>`,
@@ -250,7 +250,7 @@ function draw(shop){
     AM.push(dm); IW.push(iw);
   });
 
-  // 지도 범위
+  // 지도 범위 자동 맞추기
   if(valid.length>0){
     const lats=[sp.lat,...valid.map(d=>d.lat)];
     const lngs=[sp.lng,...valid.map(d=>d.lng)];
@@ -268,12 +268,11 @@ function focusDest(slot,shopIdx,destIdx){
 
 function setSlot(slot){
   currentSlot=slot; selectedIdx=-1; clr();
-  document.querySelectorAll('.slot-tab').forEach((t,i)=>{
-    t.className='slot-tab s'+i+(i===slot?' active':'');
-  });
+  document.querySelectorAll('.slot-tab').forEach((t,i)=>
+    t.className='slot-tab s'+i+(i===slot?' active':''));
   renderShopList();
   renderDestList(null);
-  document.getElementById('statusbar').innerHTML='상점을 선택하면 동선이 표시됩니다';
+  document.getElementById('statusbar').textContent='상점을 선택하면 전체 배달지 동선이 표시됩니다';
 }
 
 naver.maps.Event.addListener(map,'init',()=>renderShopList());
