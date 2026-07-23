@@ -4,111 +4,72 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src *; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>아침·점심 상점→배달지 — 2026-07-12</title>
+<title>아침·점심 상점→배달지</title>
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=buobcenkyk&submodules=geocoder"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
 html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',sans-serif; background:#0f0f0f; color:#fff; }
 body { display:flex; flex-direction:column; height:100vh; }
-
 #header { background:#1a1a1a; border-bottom:1px solid #2a2a2a; padding:10px 14px; flex-shrink:0; }
-.hrow { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
-h1 { font-size:13px; font-weight:600; }
-.sub { font-size:11px; color:#555; margin-bottom:6px; }
-.hint { font-size:11px; color:#888; }
-.hint span { color:#F59E0B; font-weight:600; }
-
+h1 { font-size:13px; font-weight:600; margin-bottom:6px; }
+.hint { font-size:11px; color:#666; }
+.hint b { color:#F59E0B; }
 #main { flex:1; display:flex; overflow:hidden; }
-
-#shop-panel { width:190px; background:#111; border-right:1px solid #222; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
-.panel-title { padding:8px 12px; font-size:10px; color:#555; text-transform:uppercase; border-bottom:1px solid #1e1e1e; flex-shrink:0; display:flex; justify-content:space-between; }
-#shop-list { flex:1; overflow-y:auto; }
-.shop-item { padding:7px 12px; border-bottom:.5px solid #1a1a1a; cursor:pointer; transition:background 0.1s; }
+#shop-panel { width:185px; background:#111; border-right:1px solid #222; overflow-y:auto; flex-shrink:0; }
+.panel-title { padding:8px 12px; font-size:10px; color:#555; border-bottom:1px solid #1e1e1e; position:sticky; top:0; background:#111; }
+.shop-item { padding:8px 12px; border-bottom:.5px solid #1a1a1a; cursor:pointer; }
 .shop-item:hover { background:#1a1a1a; }
 .shop-item.active { background:#F59E0B18; border-left:3px solid #F59E0B; }
-.shop-name { font-size:11px; font-weight:600; color:#ccc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
-.shop-meta { display:flex; justify-content:space-between; font-size:10px; }
+.shop-name { font-size:11px; font-weight:600; color:#ccc; margin-bottom:2px; }
+.shop-sub { display:flex; justify-content:space-between; font-size:10px; }
 .shop-cnt { color:#F59E0B; font-weight:700; }
-.shop-fee { color:#666; }
-.shop-zone { font-size:9px; margin-top:1px; }
-
-#dest-panel { width:170px; background:#111; border-left:1px solid #222; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
-#dest-list { flex:1; overflow-y:auto; padding:4px 0; }
-.dest-item { padding:5px 12px; cursor:pointer; border-bottom:.5px solid #1a1a1a; }
-.dest-item:hover { background:#1a1a1a; }
-.dest-item.active { background:#7F77DD18; }
-.dest-addr { font-size:10px; color:#bbb; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:1px; }
-.dest-cnt { font-size:10px; color:#7F77DD; font-weight:600; }
-.dest-bar { height:3px; background:#1e1e1e; border-radius:2px; margin-top:2px; overflow:hidden; }
-.dest-bar-fill { height:100%; background:#7F77DD; border-radius:2px; }
-
-#statusbar { background:#1a1a1a; border-top:1px solid #2a2a2a; padding:5px 14px; flex-shrink:0; display:flex; gap:14px; font-size:11px; align-items:center; }
-.stat { color:#888; }
-.stat span { color:#F59E0B; font-weight:700; }
-
-/* 지도 위 상태 */
-#map-status {
+.shop-zone { color:#666; }
+#map-wrap { flex:1; position:relative; }
+#map { width:100%; height:100%; }
+#status-overlay {
   position:absolute; top:8px; left:50%; transform:translateX(-50%);
-  background:rgba(15,15,15,0.92); border:1px solid #333;
-  border-radius:8px; padding:5px 14px; font-size:11px;
+  background:rgba(15,15,15,0.92); border:1px solid #444;
+  border-radius:8px; padding:6px 16px; font-size:12px; color:#aaa;
   display:none; z-index:10; white-space:nowrap;
 }
-#map-status.loading { color:#F59E0B; border-color:#F59E0B; }
-#map-status.cached  { color:#10B981; border-color:#10B981; }
-
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-track { background:#111; }
-::-webkit-scrollbar-thumb { background:#333; border-radius:2px; }
+#dest-panel { width:165px; background:#111; border-left:1px solid #222; overflow-y:auto; flex-shrink:0; }
+.dest-item { padding:6px 12px; border-bottom:.5px solid #1a1a1a; cursor:pointer; }
+.dest-item:hover { background:#1a1a1a; }
+.dest-addr { font-size:10px; color:#bbb; margin-bottom:1px; }
+.dest-cnt { font-size:10px; color:#7F77DD; font-weight:600; }
+#statusbar { background:#1a1a1a; border-top:1px solid #2a2a2a; padding:6px 14px; flex-shrink:0; font-size:11px; color:#888; }
+#statusbar b { color:#F59E0B; }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:#333; }
 </style>
 </head>
 <body>
 <div id="header">
-  <div class="hrow">
-    <h1>☀️ 아침·점심 상점 → 배달지 동선</h1>
-    <div style="font-size:11px;color:#555">2026-07-12 &nbsp; 06~13시</div>
-  </div>
-  <div class="hrow">
-    <div class="hint">총 <span>1,021건</span> &nbsp; 상점 <span>15개</span> &nbsp; 상점 클릭 → 배달지 연결선 표시</div>
-  </div>
+  <h1>☀️ 아침·점심 상점 → 배달지 동선 (06~13시)</h1>
+  <div class="hint">상점 클릭 → 배달지 연결선 표시 &nbsp;|&nbsp; <b>처음만 로딩, 이후 즉시</b></div>
 </div>
-
 <div id="main">
-  <!-- 왼쪽: 상점 -->
   <div id="shop-panel">
-    <div class="panel-title">
-      <span>상점 (건수순)</span>
-      <span style="color:#F59E0B" id="shop-count">15개</span>
-    </div>
+    <div class="panel-title">TOP 10 상점</div>
     <div id="shop-list"></div>
   </div>
-
-  <!-- 지도 -->
-  <div style="position:relative;flex:1;display:flex;">
-    <div id="map" style="flex:1;"></div>
-    <div id="map-status"></div>
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="status-overlay"></div>
   </div>
-
-  <!-- 오른쪽: 배달지 -->
   <div id="dest-panel">
-    <div class="panel-title">
-      <span>배달지</span>
-      <span style="color:#7F77DD" id="dest-count">-</span>
-    </div>
-    <div id="dest-list"><div style="padding:12px;font-size:11px;color:#444">← 상점을 클릭하세요</div></div>
+    <div class="panel-title">배달지 TOP 3</div>
+    <div id="dest-list"><div style="padding:12px;font-size:11px;color:#444">← 상점 클릭</div></div>
   </div>
 </div>
-
-<div id="statusbar">
-  <div class="stat" id="s1">상점 선택 전</div>
-  <div class="stat" id="s2"></div>
-  <div class="stat" id="s3"></div>
-  <div class="stat" id="s4"></div>
-</div>
+<div id="statusbar">상점을 선택하면 동선이 표시됩니다</div>
 
 <script>
-const DATA = {"date": "2026-07-12", "slot": "아침·점심 (06~13시)", "total": 1021, "shops": [{"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 42, "avg_fee": 4623, "dests": [["압구정로 151", 5], ["압구정로39길 58", 2], ["영동대로142길 16", 2], ["압구정로 201", 2], ["학동로77길 27", 2], ["압구정로29길 71", 2]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 41, "avg_fee": 4520, "dests": [["학동로68길 29 삼성현대힐스테이트1단지아파트", 2], ["봉은사로 134 도미인서울강남호텔", 1], ["선릉로86길 31 롯데골드로즈2차", 1], ["강남대로120길 20", 1], ["봉은사로29길 6-6", 1], ["삼성로64길 5", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 14, "avg_fee": 5800, "dests": [["삼성로 150", 2], ["도곡로37길 48", 1], ["개포로 310", 1], ["테헤란로14길 13", 1], ["개포로 311", 1], ["선릉로64길 32", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 12, "avg_fee": 4738, "dests": [["서울 서초구 사평대로55길 97-6", 1], ["서울 강남구 언주로 615 논현아이파크아파트", 1], ["서울 강남구 학동로26길 43-1", 1], ["서울 강남구 학동로38길 36", 1], ["서울 강남구 언주로 726", 1], ["서울 강남구 언주로104길 29", 1]]}, {"shop": "평화로 부대찌개&부대볶음 강남점", "pickup_addr": "서울특별시 강남구 언주로93길 21", "zone": "역삼동", "total": 7, "avg_fee": 5400, "dests": [["서울 강남구 논현로72길 33", 1], ["서울 강남구 삼성로51길 37 래미안대치팰리스1단지아파트", 1], ["서울 서초구 사평대로56길 8", 1], ["서울 강남구 논현로115길 65", 1], ["서울 서초구 효령로 429", 1], ["서울 강남구 영동대로138길 12 청담자이아파트 102동", 1]]}, {"shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동", "total": 7, "avg_fee": 5171, "dests": [["서울 강남구 개포로 310 디에이치퍼스티어아이파크아파트", 1], ["서울 강남구 봉은사로21길 57-3", 1], ["서울 서초구 언남11길 19", 1], ["서울 강남구 언주로86길 7", 1], ["서울 강남구 역삼로11길 6", 1], ["서울 강남구 압구정로4길 14-10", 1]]}, {"shop": "혜준당 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 4649, "dests": [["서울 강남구 봉은사로51길 43", 1], ["서울 강남구 학동로30길 37-20", 1], ["서울 서초구 주흥9길 14-17", 1], ["서울 강남구 테헤란로64길 13", 1], ["서울 강남구 언주로86길 11", 1], ["서울 강남구 언주로 720", 1]]}, {"shop": "영천 얼큰 돼지국밥&해장국밥", "pickup_addr": "서울특별시 강남구 봉은사로30길 73", "zone": "역삼동", "total": 7, "avg_fee": 5377, "dests": [["서울 강남구 남부순환로365길 56", 1], ["서울 강남구 봉은사로84길 10-1", 1], ["서울 강남구 논현로118길 11", 1], ["서울 강남구 도산대로4길 19", 1], ["서울 강남구 테헤란로57길 26", 1], ["서울 강남구 삼성로67길 48", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 7, "avg_fee": 5317, "dests": [["서울 서초구 강남대로 365 도씨에빛1", 1], ["서울 강남구 테헤란로6길 26", 1], ["서울 강남구 선릉로126길 22", 1], ["서울 강남구 봉은사로69길 48", 1], ["서울 서초구 효령로 391 서초그랑자이아파트 105동", 1], ["서울 강남구 삼성로133길 7 VIP동물의료센터 청담점", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 6, "avg_fee": 5353, "dests": [["서울 강남구 학동로 607", 1], ["서울 강남구 선릉로82길 17", 1], ["서울 강남구 봉은사로43길 55", 1], ["서울 강남구 역삼로4길 16", 1], ["서울 강남구 선릉로 221", 1], ["서울 강남구 선릉로76길 5-10", 1]]}, {"shop": "청담과 청담동1% 과일제작소", "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동", "total": 6, "avg_fee": 5750, "dests": [["서울 강남구 강남대로 328", 1], ["서울 강남구 봉은사로47길 38-8", 1], ["서울 강남구 선릉로130길 19 서광아파트 102동", 1], ["서울 강남구 봉은사로50길 37", 1], ["서울 강남구 압구정로 201", 1], ["서울 강남구 삼성로85길 42 대우아이빌멤버스4차", 1]]}, {"shop": "노모어피자 역삼본점", "pickup_addr": "서울특별시 강남구 논현로94길 32", "zone": "역삼동", "total": 6, "avg_fee": 5657, "dests": [["서울 강남구 도곡로64길 21", 1], ["서울 강남구 역삼로 555", 1], ["서울 강남구 테헤란로33길 6-5", 1], ["서울 강남구 테헤란로 606 파크하얏트서울호텔", 1], ["서울 강남구 선릉로112길 30 현대교회", 1], ["서울 서초구 남부순환로 2634-8", 1]]}, {"shop": "카페샌드플래닛 샌드위치 전문점", "pickup_addr": "서울특별시 강남구 언주로103길 27", "zone": "역삼동", "total": 5, "avg_fee": 6100, "dests": [["서울 강남구 삼성로111길 8", 1], ["서울 서초구  래미안신반포리오센트아파트 103동", 1], ["서울 강남구 논현로175길 111-3", 1], ["서울 서초구 강남대로 321", 1], ["서울 강남구 봉은사로59길 32", 1]]}, {"shop": "볶음밥 도사 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동", "total": 5, "avg_fee": 5564, "dests": [["서울 강남구 강남대로 338", 1], ["서울 강남구 선릉로92길 41 어반네스트", 1], ["서울 서초구 언남길 85", 1], ["서울 강남구 학동로12길 34-1", 1], ["서울 강남구 봉은사로73길 46-7", 1]]}, {"shop": "BHC 역삼점", "pickup_addr": "서울특별시 강남구 논현로85길 52", "zone": "역삼동", "total": 5, "avg_fee": 4596, "dests": [["서울 서초구 남부순환로 2634-8", 1], ["서울 강남구 테헤란로4길 6", 1], ["서울 강남구 테헤란로 212 멀티캠퍼스 교육센터", 1], ["서울 서초구 남부순환로335길 31", 1], ["서울 서초구 강남대로39길 5", 1]]}]};
+const DATA = {"date": "2026-07-12", "shops": [{"shop": "B마트 강남압구정", "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동", "total": 42, "avg_fee": 4623, "dests": [["압구정로 151", 5], ["압구정로39길 58", 2], ["영동대로142길 16", 2]]}, {"shop": "B마트 강남논현", "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동", "total": 41, "avg_fee": 4520, "dests": [["학동로68길 29 삼성현대힐스테이트1단지아파트", 2], ["봉은사로 134 도미인서울강남호텔", 1], ["선릉로86길 31 롯데골드로즈2차", 1]]}, {"shop": "B마트 강남양재", "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동", "total": 14, "avg_fee": 5800, "dests": [["삼성로 150", 2], ["도곡로37길 48", 1], ["개포로 310", 1]]}, {"shop": "롯데리아 학동역점", "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동", "total": 12, "avg_fee": 4738, "dests": [["서울 서초구 사평대로55길 97-6", 1], ["서울 강남구 언주로 615 논현아이파크아파트", 1], ["서울 강남구 학동로26길 43-1", 1]]}, {"shop": "평화로 부대찌개&부대볶음 강남점", "pickup_addr": "서울특별시 강남구 언주로93길 21", "zone": "역삼동", "total": 7, "avg_fee": 5400, "dests": [["서울 강남구 논현로72길 33", 1], ["서울 강남구 삼성로51길 37 래미안대치팰리스1단지아파트", 1], ["서울 서초구 사평대로56길 8", 1]]}, {"shop": "김치찜 팝니다 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동", "total": 7, "avg_fee": 5171, "dests": [["서울 강남구 개포로 310 디에이치퍼스티어아이파크아파트", 1], ["서울 강남구 봉은사로21길 57-3", 1], ["서울 서초구 언남11길 19", 1]]}, {"shop": "혜준당 논현직영점", "pickup_addr": "서울특별시 강남구 언주로 615", "zone": "논현동", "total": 7, "avg_fee": 4649, "dests": [["서울 강남구 봉은사로51길 43", 1], ["서울 강남구 학동로30길 37-20", 1], ["서울 서초구 주흥9길 14-17", 1]]}, {"shop": "영천 얼큰 돼지국밥&해장국밥", "pickup_addr": "서울특별시 강남구 봉은사로30길 73", "zone": "역삼동", "total": 7, "avg_fee": 5377, "dests": [["서울 강남구 남부순환로365길 56", 1], ["서울 강남구 봉은사로84길 10-1", 1], ["서울 강남구 논현로118길 11", 1]]}, {"shop": "이프유캔 Coffee&Dessert 강남본점", "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동", "total": 7, "avg_fee": 5317, "dests": [["서울 서초구 강남대로 365 도씨에빛1", 1], ["서울 강남구 테헤란로6길 26", 1], ["서울 강남구 선릉로126길 22", 1]]}, {"shop": "청담각 짜장짬뽕전문점 강남본점", "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동", "total": 6, "avg_fee": 5353, "dests": [["서울 강남구 학동로 607", 1], ["서울 강남구 선릉로82길 17", 1], ["서울 강남구 봉은사로43길 55", 1]]}]};
 
-const CACHE_KEY = 'geo_morning_v1';
+
+// ── 핵심: 상점을 인덱스로 참조 (특수문자 문제 없음) ──
+const CACHE_KEY = 'geo_morning_v2';
 const ZONE_COLORS = {
   '역삼동':'#FF6B35','논현동':'#F59E0B','대치동':'#10B981',
   '신사동':'#7F77DD','삼성동':'#EC4899','청담동':'#06B6D4',
@@ -118,165 +79,162 @@ function zc(z){ return ZONE_COLORS[z]||'#888'; }
 function ll(a,b){ return new naver.maps.LatLng(a,b); }
 
 let map, AM=[], AL=[], IW=[];
-let currentShop=null;
-let cache={};
-try{ cache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}'); }catch(e){}
+let selectedIdx = -1;
+let cache = {};
+try{ cache = JSON.parse(localStorage.getItem(CACHE_KEY)||'{}'); }catch(e){}
 function saveCache(){ try{localStorage.setItem(CACHE_KEY,JSON.stringify(cache));}catch(e){} }
 
 map = new naver.maps.Map('map',{
-  center: new naver.maps.LatLng(37.508,127.025), zoom:13, scaleControl:false,
+  center: new naver.maps.LatLng(37.508, 127.025),
+  zoom:13, scaleControl:false,
 });
 
+// Geocoding 단건
 function gcOne(addr){
   return new Promise((res,rej)=>{
     if(cache[addr]){ res(cache[addr]); return; }
     naver.maps.Service.geocode({query:addr},(st,resp)=>{
-      if(st!==naver.maps.Service.Status.OK){ rej(); return; }
-      const it=resp.v2.addresses;
+      if(st !== naver.maps.Service.Status.OK){ rej(); return; }
+      const it = resp.v2.addresses;
       if(!it||!it.length){ rej(); return; }
-      const r={lat:parseFloat(it[0].y),lng:parseFloat(it[0].x)};
-      cache[addr]=r; res(r);
+      const r = {lat:parseFloat(it[0].y), lng:parseFloat(it[0].x)};
+      cache[addr] = r;
+      res(r);
     });
   });
 }
 
-// 병렬 Geocoding (5개 동시)
+// 병렬 Geocoding
 async function gcBatch(addrs){
-  const q=[...addrs]; const res={};
-  const w=Array(Math.min(5,q.length)).fill(null).map(async()=>{
+  const q = addrs.filter(a=>a&&!cache[a]);
+  if(!q.length) return;
+  const workers = Array(Math.min(5,q.length)).fill(null).map(async()=>{
     while(q.length>0){
-      const a=q.shift();
-      try{ res[a]=await gcOne(a); }catch(e){ res[a]=null; }
+      const a = q.shift();
+      try{ await gcOne(a); }catch(e){}
     }
   });
-  await Promise.all(w);
-  return res;
+  await Promise.all(workers);
+  saveCache();
 }
 
-function clr(){ AM.forEach(m=>m.setMap(null)); AL.forEach(l=>l.setMap(null)); IW.forEach(w=>w.close()); AM=[];AL=[];IW=[]; }
-
-function showStatus(msg, type){
-  const el=document.getElementById('map-status');
-  el.textContent=msg; el.className=type; el.style.display='block';
-  if(type==='cached') setTimeout(()=>el.style.display='none',1500);
+function clr(){
+  AM.forEach(m=>m.setMap(null));
+  AL.forEach(l=>l.setMap(null));
+  IW.forEach(w=>w.close());
+  AM=[];AL=[];IW=[];
 }
-function hideStatus(){ document.getElementById('map-status').style.display='none'; }
 
-// 상점 리스트
+function setOverlay(msg, color){
+  const el = document.getElementById('status-overlay');
+  if(!msg){ el.style.display='none'; return; }
+  el.textContent = msg;
+  el.style.borderColor = color||'#444';
+  el.style.color = color||'#aaa';
+  el.style.display = 'block';
+}
+
+// 상점 리스트 렌더 (인덱스 기반)
 function renderShopList(){
-  const maxCnt=Math.max(...DATA.shops.map(s=>s.total));
-  document.getElementById('shop-list').innerHTML=DATA.shops.map(s=>`
-    <div class="shop-item ${currentShop===s.shop?'active':''}"
-         onclick="sel('${s.shop.replace(/\/g,'\\').replace(/'/g,"\'")}')">
-      <div class="shop-name" title="${s.shop}">${s.shop}</div>
-      <div class="shop-meta">
+  document.getElementById('shop-list').innerHTML = DATA.shops.map((s,i)=>`
+    <div class="shop-item ${selectedIdx===i?'active':''}" onclick="selectByIdx(${i})">
+      <div class="shop-name">${s.shop}</div>
+      <div class="shop-sub">
         <span class="shop-cnt">${s.total}건</span>
-        <span class="shop-fee">${s.avg_fee.toLocaleString()}원</span>
+        <span class="shop-zone" style="color:${zc(s.zone)}">${s.zone}</span>
       </div>
-      <div class="shop-zone" style="color:${zc(s.zone)}">${s.zone}</div>
     </div>`).join('');
 }
 
-// 배달지 리스트
+// 배달지 리스트 렌더
 function renderDestList(shop){
   if(!shop){
-    document.getElementById('dest-list').innerHTML='<div style="padding:12px;font-size:11px;color:#444">← 상점을 클릭하세요</div>';
-    document.getElementById('dest-count').textContent='-';
+    document.getElementById('dest-list').innerHTML='<div style="padding:12px;font-size:11px;color:#444">← 상점 클릭</div>';
     return;
   }
-  const maxCnt=Math.max(...shop.dests.map(d=>d[1]));
-  document.getElementById('dest-count').textContent=`${shop.dests.length}곳`;
-  document.getElementById('dest-list').innerHTML=shop.dests.map(([addr,cnt])=>`
-    <div class="dest-item" onclick="focusDest('${addr.replace(/\/g,'\\').replace(/'/g,"\'")}')">
-      <div class="dest-addr" title="${addr}">${addr.replace(/서울특별시 |서울 /g,'')}</div>
+  document.getElementById('dest-list').innerHTML = shop.dests.map(([addr,cnt],i)=>`
+    <div class="dest-item" onclick="focusDestByIdx(${DATA.shops.indexOf(shop)},${i})">
+      <div class="dest-addr">${addr.replace(/서울특별시 |서울 /g,'')}</div>
       <div class="dest-cnt">${cnt}건</div>
-      <div class="dest-bar"><div class="dest-bar-fill" style="width:${Math.round(cnt/maxCnt*100)}%"></div></div>
     </div>`).join('');
 }
 
-// 상점 선택
-async function sel(shopName){
-  currentShop=shopName;
+// 핵심: 인덱스로 상점 선택 (문자열 파싱 없음)
+async function selectByIdx(idx){
+  selectedIdx = idx;
   renderShopList();
-  const shop=DATA.shops.find(s=>s.shop===shopName);
-  if(!shop) return;
+  const shop = DATA.shops[idx];
   renderDestList(shop);
-
-  // 상태바
-  document.getElementById('s1').innerHTML=`<span>${shopName.substring(0,14)}</span>`;
-  document.getElementById('s2').innerHTML=`총 <span>${shop.total}건</span>`;
-  document.getElementById('s3').innerHTML=`평균단가 <span>${shop.avg_fee.toLocaleString()}원</span>`;
-  document.getElementById('s4').innerHTML=`구역 <span style="color:${zc(shop.zone)}">${shop.zone}</span>`;
 
   clr();
 
-  // 변환 필요 주소
-  const allAddrs=[shop.pickup_addr,...shop.dests.map(d=>d[0])].filter(Boolean);
-  const needGeo=allAddrs.filter(a=>!cache[a]);
+  // 변환할 주소 목록
+  const allAddrs = [shop.pickup_addr, ...shop.dests.map(d=>d[0])].filter(Boolean);
+  const needGeo  = allAddrs.filter(a=>!cache[a]);
 
-  if(needGeo.length===0){
-    showStatus('⚡ 캐시에서 즉시 로딩','cached');
-  } else {
-    showStatus(`⏳ 주소 변환 중 (${needGeo.length}개)...`, 'loading');
+  if(needGeo.length > 0){
+    setOverlay(`⏳ 주소 변환 중 (${needGeo.length}개)...`, '#F59E0B');
     await gcBatch(needGeo);
-    saveCache();
-    hideStatus();
+    setOverlay(null);
+  } else {
+    setOverlay('⚡ 캐시', '#10B981');
+    setTimeout(()=>setOverlay(null), 1200);
   }
 
   draw(shop);
+
+  // 상태바
+  document.getElementById('statusbar').innerHTML =
+    `<b>${shop.shop}</b> &nbsp; ${shop.total}건 &nbsp; 평균 ${shop.avg_fee.toLocaleString()}원 &nbsp; <span style="color:${zc(shop.zone)}">${shop.zone}</span>`;
 }
 
-// 지도 그리기
 function draw(shop){
-  const color=zc(shop.zone);
-  const sp=cache[shop.pickup_addr];
+  const color = zc(shop.zone);
+  const sp = cache[shop.pickup_addr];
   if(!sp) return;
-  const sll=ll(sp.lat,sp.lng);
-  const maxCnt=Math.max(...shop.dests.map(d=>d[1]));
-  const validDests=[];
+  const sll = ll(sp.lat, sp.lng);
+  const maxCnt = Math.max(...shop.dests.map(d=>d[1]));
+  const valid = [];
 
   // 상점 마커
-  AM.push(new naver.maps.Marker({map,position:sll,zIndex:100,icon:{
-    content:`<div style="background:${color};border:3px solid #fff;border-radius:10px;padding:5px 10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.6)">${shop.shop.substring(0,14)}</div>`,
-    anchor:new naver.maps.Point(0,24),
+  AM.push(new naver.maps.Marker({map, position:sll, zIndex:100, icon:{
+    content:`<div style="background:${color};border:3px solid #fff;border-radius:10px;padding:5px 10px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.5)">${shop.shop.substring(0,14)}</div>`,
+    anchor: new naver.maps.Point(0, 24),
   }}));
 
-  // 배달지 + 연결선
   shop.dests.forEach(([addr,cnt])=>{
-    const dp=cache[addr]; if(!dp) return;
-    const ratio=cnt/maxCnt;
-    const dll=ll(dp.lat,dp.lng);
-    validDests.push({addr,cnt,dp,ratio,dll});
+    const dp = cache[addr]; if(!dp) return;
+    const ratio = cnt/maxCnt;
+    const dll = ll(dp.lat, dp.lng);
+    valid.push({dp});
 
     // 연결선
-    AL.push(new naver.maps.Polyline({map,path:[sll,dll],
-      strokeColor:color,
-      strokeWeight:Math.max(1.5,ratio*6),
+    AL.push(new naver.maps.Polyline({map, path:[sll,dll],
+      strokeColor:color, strokeWeight:Math.max(1.5,ratio*6),
       strokeOpacity:0.15+ratio*0.7,
     }));
 
-    // 화살표 (65% 지점)
-    const ang=Math.atan2(dp.lng-sp.lng,dp.lat-sp.lat)*180/Math.PI;
-    const aLat=sp.lat+(dp.lat-sp.lat)*0.65;
-    const aLng=sp.lng+(dp.lng-sp.lng)*0.65;
-    AM.push(new naver.maps.Marker({map,position:ll(aLat,aLng),icon:{
-      content:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};transform:rotate(${ang}deg);opacity:${0.35+ratio*0.55};pointer-events:none;"></div>`,
-      anchor:new naver.maps.Point(5,5),
-    }}));
+    // 화살표
+    const ang = Math.atan2(dp.lng-sp.lng, dp.lat-sp.lat)*180/Math.PI;
+    AM.push(new naver.maps.Marker({map,
+      position:ll(sp.lat+(dp.lat-sp.lat)*0.65, sp.lng+(dp.lng-sp.lng)*0.65),
+      icon:{
+        content:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};transform:rotate(${ang}deg);opacity:${0.4+ratio*0.5};pointer-events:none;"></div>`,
+        anchor:new naver.maps.Point(5,5),
+      }
+    }));
 
     // 배달지 마커
-    const sz=Math.max(16,Math.round(14+ratio*14));
-    const dm=new naver.maps.Marker({map,position:dll,icon:{
-      content:`<div style="width:${sz}px;height:${sz}px;border-radius:4px;background:rgba(127,119,221,${0.2+ratio*0.7});border:2px solid #7F77DD;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.4)">${cnt}</div>`,
+    const sz = Math.max(16, Math.round(14+ratio*14));
+    const dm = new naver.maps.Marker({map, position:dll, icon:{
+      content:`<div style="width:${sz}px;height:${sz}px;border-radius:4px;background:rgba(127,119,221,${0.2+ratio*0.7});border:2px solid #7F77DD;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;">${cnt}</div>`,
       anchor:new naver.maps.Point(sz/2,sz/2),
     }});
 
-    // 정보창
-    const iw=new naver.maps.InfoWindow({
-      content:`<div style="background:#1a1a1a;border:1px solid ${color};border-radius:8px;padding:8px 12px;min-width:170px;">
-        <div style="color:${color};font-weight:700;font-size:12px;margin-bottom:4px">📦 ${cnt}건 배달</div>
-        <div style="color:#ccc;font-size:11px;word-break:break-all">${addr.replace(/서울특별시 |서울 /g,'')}</div>
-        <div style="color:#888;font-size:10px;margin-top:4px">← ${shop.shop.substring(0,16)}</div>
+    const iw = new naver.maps.InfoWindow({
+      content:`<div style="background:#1a1a1a;border:1px solid ${color};border-radius:8px;padding:8px 12px;">
+        <div style="color:${color};font-weight:700;margin-bottom:3px">${cnt}건 배달</div>
+        <div style="color:#ccc;font-size:11px">${addr.replace(/서울특별시 |서울 /g,'')}</div>
       </div>`,
       borderColor:'transparent',backgroundColor:'transparent',borderWidth:0,disableAnchor:true,
     });
@@ -284,23 +242,26 @@ function draw(shop){
     AM.push(dm); IW.push(iw);
   });
 
-  // 지도 범위 맞추기
-  if(validDests.length>0){
-    const lats=[sp.lat,...validDests.map(d=>d.dp.lat)];
-    const lngs=[sp.lng,...validDests.map(d=>d.dp.lng)];
+  // 지도 범위
+  if(valid.length>0){
+    const lats = [sp.lat,...valid.map(d=>d.dp.lat)];
+    const lngs = [sp.lng,...valid.map(d=>d.dp.lng)];
     map.fitBounds(new naver.maps.LatLngBounds(
-      ll(Math.min(...lats)-0.005,Math.min(...lngs)-0.005),
-      ll(Math.max(...lats)+0.005,Math.max(...lngs)+0.005)
+      ll(Math.min(...lats)-0.004, Math.min(...lngs)-0.004),
+      ll(Math.max(...lats)+0.004, Math.max(...lngs)+0.004)
     ));
   }
 }
 
-function focusDest(addr){
-  const p=cache[addr]; if(p) map.panTo(ll(p.lat,p.lng));
+// 배달지 포커스 (인덱스 기반)
+function focusDestByIdx(shopIdx, destIdx){
+  const addr = DATA.shops[shopIdx].dests[destIdx][0];
+  const p = cache[addr];
+  if(p) map.panTo(ll(p.lat,p.lng));
 }
 
 naver.maps.Event.addListener(map,'init',()=>renderShopList());
-setTimeout(()=>renderShopList(),500);
+setTimeout(()=>renderShopList(), 500);
 </script>
 </body>
 </html>
