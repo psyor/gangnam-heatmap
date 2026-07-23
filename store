@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src *; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강남 배달 콜 분석 데모 — 2026-07-12</title>
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=buobcenkyk&submodules=geocoder"></script>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; font-family:-apple-system,'Apple SD Gothic Neo',sans-serif; background:#0f0f0f; color:#fff; }
+body { display:flex; flex-direction:column; height:100vh; }
+
+/* 헤더 */
+#header { background:#1a1a1a; border-bottom:1px solid #2a2a2a; padding:10px 14px; flex-shrink:0; }
+.hrow { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+h1 { font-size:13px; font-weight:600; }
+.summary { display:flex; gap:12px; font-size:11px; color:#888; }
+.summary span { color:#FF6B35; font-weight:700; }
+
+/* 탭 */
+.tabs { display:flex; gap:5px; margin-bottom:8px; }
+.tab { padding:4px 12px; border-radius:20px; border:1px solid #333; background:#222; color:#888; font-size:11px; cursor:pointer; }
+.tab.active { background:#FF6B35; border-color:#FF6B35; color:#fff; }
+
+/* 슬라이더 */
+#slider-wrap { display:flex; align-items:center; gap:8px; }
+#time-slider { flex:1; -webkit-appearance:none; height:6px; border-radius:3px; background:#333; outline:none; cursor:pointer; }
+#time-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#FF6B35; cursor:pointer; border:3px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+#time-label { font-size:12px; color:#FF6B35; font-weight:700; min-width:80px; text-align:right; }
+
+/* 메인 레이아웃 */
+#main { flex:1; display:flex; overflow:hidden; }
+#map { flex:1; }
+
+/* 오른쪽 패널 */
+#panel { width:220px; background:#111; border-left:1px solid #222; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
+.panel-section { padding:10px 12px; border-bottom:1px solid #1e1e1e; }
+.panel-title { font-size:10px; color:#555; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+
+/* 시간대 바 차트 */
+#hour-chart { padding:8px 12px; flex-shrink:0; }
+.bar-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; cursor:pointer; border-radius:4px; padding:2px 4px; }
+.bar-row:hover { background:#1e1e1e; }
+.bar-row.active { background:#FF6B3522; }
+.bar-hour { font-size:10px; color:#666; width:28px; text-align:right; flex-shrink:0; }
+.bar-bg { flex:1; height:6px; background:#1e1e1e; border-radius:3px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; background:#FF6B35; transition:width 0.2s; }
+.bar-cnt { font-size:10px; color:#555; width:30px; text-align:right; flex-shrink:0; }
+
+/* 구역 리스트 */
+.zone-item { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:.5px solid #1a1a1a; }
+.zone-item:last-child { border:none; }
+.zone-name { font-size:12px; color:#ccc; }
+.zone-cnt { font-size:11px; color:#FF6B35; font-weight:600; }
+.zone-bar { width:60px; height:4px; background:#1e1e1e; border-radius:2px; overflow:hidden; margin-top:2px; }
+.zone-bar-fill { height:100%; background:#FF6B35; border-radius:2px; }
+
+/* 배달지 패턴 */
+.dest-item { display:flex; justify-content:space-between; padding:3px 0; font-size:11px; border-bottom:.5px solid #1a1a1a; }
+.dest-item:last-child { border:none; }
+.dest-name { color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px; }
+.dest-pct { color:#7F77DD; font-weight:600; flex-shrink:0; }
+
+/* 하단 상태바 */
+#statusbar { background:#1a1a1a; border-top:1px solid #2a2a2a; padding:6px 14px; flex-shrink:0; display:flex; gap:16px; font-size:11px; }
+.stat { color:#888; }
+.stat span { color:#FF6B35; font-weight:600; }
+
+/* 로딩 */
+#loading { position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.9); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:12px; }
+#loading-bar-wrap { width:200px; height:4px; background:#333; border-radius:2px; }
+#loading-bar { height:100%; background:#FF6B35; border-radius:2px; width:0%; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="hrow">
+    <h1>📊 강남 배달 콜 분석 — 2026-07-12</h1>
+    <div class="summary">
+      총 <span>4,918건</span> &nbsp; 라이더 <span>130명</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="setView('density')">🔴 콜 발생</button>
+    <button class="tab" onclick="setView('dest')">🟣 배달지</button>
+    <button class="tab" onclick="setView('shops')">🟡 상점</button>
+    <button class="tab" onclick="setView('fee')">💰 단가</button>
+  </div>
+  <div id="slider-wrap">
+    <span style="font-size:10px;color:#555">00시</span>
+    <input type="range" id="time-slider" min="0" max="23" value="12" oninput="onTimeSlider(this.value)">
+    <span id="time-label">12시~13시</span>
+  </div>
+</div>
+
+<div id="main">
+  <div id="map"></div>
+  <div id="panel">
+    <!-- 시간대 바 차트 -->
+    <div class="panel-title" style="padding:10px 12px 4px;border-bottom:1px solid #1e1e1e;">⏰ 시간대별 콜량</div>
+    <div id="hour-chart" style="overflow-y:auto;flex:0 0 auto;max-height:200px;"></div>
+
+    <!-- 구역 순위 -->
+    <div class="panel-section" style="flex:0 0 auto;">
+      <div class="panel-title">📍 구역별 콜 순위</div>
+      <div id="zone-list"></div>
+    </div>
+
+    <!-- 배달지 패턴 -->
+    <div class="panel-section" style="flex:1;overflow-y:auto;">
+      <div class="panel-title">🎯 주요 배달지</div>
+      <div id="dest-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <div class="stat" id="stat-total">선택 시간대: -</div>
+  <div class="stat" id="stat-fee">평균단가: -</div>
+  <div class="stat" id="stat-dist">평균거리: -</div>
+  <div class="stat" id="stat-top">최다 구역: -</div>
+</div>
+
+<div id="loading">
+  <div style="font-size:24px">📍</div>
+  <div style="font-size:12px;color:#aaa">상점 위치 로딩 중...</div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+</div>
+
+<script>
+const DATA = {"date": "2026-07-12", "total": 4918, "hour_summary": {"0": {"total": 151, "avg_fee": 4427, "avg_dist": 1.68, "zones": [["역삼동", 59], ["논현동", 52], ["대치동", 13], ["삼성동", 8], ["신사동", 7]]}, "1": {"total": 99, "avg_fee": 4709, "avg_dist": 2.09, "zones": [["역삼동", 48], ["논현동", 29], ["삼성동", 6], ["서초동", 4], ["청담동", 4]]}, "2": {"total": 69, "avg_fee": 4533, "avg_dist": 2.01, "zones": [["역삼동", 36], ["논현동", 25], ["삼성동", 3], ["신사동", 3], ["대치동", 1]]}, "3": {"total": 46, "avg_fee": 5713, "avg_dist": 2.14, "zones": [["논현동", 20], ["역삼동", 17], ["대치동", 3], ["서초동", 3], ["삼성동", 3]]}, "4": {"total": 51, "avg_fee": 6219, "avg_dist": 2.14, "zones": [["역삼동", 25], ["논현동", 20], ["서초동", 3], ["삼성동", 2], ["대치동", 1]]}, "5": {"total": 2, "avg_fee": 5720, "avg_dist": 1.49, "zones": [["역삼동", 2]]}, "6": {"total": 18, "avg_fee": 4608, "avg_dist": 1.86, "zones": [["역삼동", 9], ["논현동", 6], ["삼성동", 1], ["신사동", 1], ["반포동", 1]]}, "7": {"total": 28, "avg_fee": 4406, "avg_dist": 1.7, "zones": [["역삼동", 18], ["논현동", 6], ["대치동", 3], ["삼성동", 1]]}, "8": {"total": 84, "avg_fee": 4372, "avg_dist": 1.74, "zones": [["역삼동", 31], ["논현동", 25], ["신사동", 17], ["대치동", 5], ["서초동", 2]]}, "9": {"total": 134, "avg_fee": 4559, "avg_dist": 1.64, "zones": [["논현동", 44], ["역삼동", 36], ["신사동", 19], ["대치동", 8], ["도곡동", 7]]}, "10": {"total": 220, "avg_fee": 4989, "avg_dist": 1.76, "zones": [["논현동", 58], ["역삼동", 53], ["신사동", 33], ["대치동", 23], ["삼성동", 21]]}, "11": {"total": 313, "avg_fee": 5963, "avg_dist": 1.8, "zones": [["역삼동", 92], ["논현동", 80], ["신사동", 35], ["대치동", 32], ["삼성동", 21]]}, "12": {"total": 347, "avg_fee": 5993, "avg_dist": 1.79, "zones": [["역삼동", 99], ["논현동", 77], ["대치동", 59], ["신사동", 42], ["삼성동", 18]]}, "13": {"total": 305, "avg_fee": 6216, "avg_dist": 1.75, "zones": [["논현동", 79], ["역삼동", 79], ["대치동", 41], ["신사동", 38], ["삼성동", 21]]}, "14": {"total": 254, "avg_fee": 5051, "avg_dist": 1.65, "zones": [["역삼동", 82], ["논현동", 70], ["신사동", 27], ["대치동", 21], ["청담동", 17]]}, "15": {"total": 278, "avg_fee": 5801, "avg_dist": 1.67, "zones": [["논현동", 79], ["역삼동", 75], ["신사동", 31], ["대치동", 25], ["삼성동", 19]]}, "16": {"total": 354, "avg_fee": 5129, "avg_dist": 1.72, "zones": [["역삼동", 106], ["논현동", 93], ["대치동", 38], ["신사동", 31], ["삼성동", 22]]}, "17": {"total": 416, "avg_fee": 6189, "avg_dist": 1.87, "zones": [["역삼동", 130], ["논현동", 83], ["대치동", 61], ["신사동", 41], ["서초동", 25]]}, "18": {"total": 442, "avg_fee": 6232, "avg_dist": 1.87, "zones": [["역삼동", 138], ["논현동", 98], ["신사동", 52], ["대치동", 48], ["서초동", 32]]}, "19": {"total": 413, "avg_fee": 6799, "avg_dist": 1.85, "zones": [["역삼동", 130], ["논현동", 105], ["신사동", 45], ["삼성동", 38], ["대치동", 32]]}, "20": {"total": 310, "avg_fee": 5075, "avg_dist": 1.76, "zones": [["역삼동", 98], ["논현동", 70], ["대치동", 39], ["신사동", 28], ["삼성동", 26]]}, "21": {"total": 223, "avg_fee": 4486, "avg_dist": 1.84, "zones": [["역삼동", 81], ["논현동", 62], ["대치동", 21], ["삼성동", 18], ["신사동", 15]]}, "22": {"total": 183, "avg_fee": 4398, "avg_dist": 1.78, "zones": [["논현동", 58], ["역삼동", 55], ["대치동", 19], ["삼성동", 14], ["신사동", 13]]}, "23": {"total": 178, "avg_fee": 4411, "avg_dist": 1.74, "zones": [["역삼동", 77], ["논현동", 66], ["신사동", 13], ["대치동", 11], ["삼성동", 5]]}}, "zone_dest": {"반포동": {"total": 72, "top_dests": [["강남대로길", 12, 17], ["사평대로길", 6, 8], ["서초중앙로", 4, 6], ["신반포로", 4, 6], ["테헤란로길", 4, 6], ["고무래로", 4, 6]]}, "역삼동": {"total": 1576, "top_dests": [["테헤란로길", 199, 13], ["논현로길", 140, 9], ["언주로길", 137, 9], ["강남대로길", 116, 7], ["봉은사로길", 95, 6], ["선릉로길", 88, 6]]}, "논현동": {"total": 1305, "top_dests": [["논현로길", 129, 10], ["봉은사로길", 121, 9], ["테헤란로길", 113, 9], ["강남대로길", 105, 8], ["학동로길", 103, 8], ["언주로길", 80, 6]]}, "도곡동": {"total": 124, "top_dests": [["삼성로", 11, 9], ["언주로길", 10, 8], ["논현로길", 10, 8], ["선릉로", 9, 7], ["도곡로길", 8, 6], ["테헤란로길", 8, 6]]}, "삼성동": {"total": 305, "top_dests": [["선릉로길", 38, 12], ["학동로길", 29, 10], ["봉은사로길", 28, 9], ["테헤란로길", 25, 8], ["삼성로길", 22, 7], ["영동대로길", 18, 6]]}, "대치동": {"total": 508, "top_dests": [["삼성로", 57, 11], ["삼성로길", 53, 10], ["테헤란로길", 45, 9], ["선릉로길", 45, 9], ["언주로길", 28, 6], ["선릉로", 26, 5]]}, "서초동": {"total": 214, "top_dests": [["테헤란로길", 20, 9], ["강남대로길", 18, 8], ["서운로", 16, 7], ["서초대로길", 15, 7], ["논현로길", 15, 7], ["봉은사로길", 11, 5]]}, "신사동": {"total": 493, "top_dests": [["압구정로길", 91, 18], ["압구정로", 71, 14], ["도산대로길", 65, 13], ["학동로길", 36, 7], ["강남대로길", 25, 5], ["선릉로길", 21, 4]]}, "청담동": {"total": 160, "top_dests": [["도산대로길", 22, 14], ["압구정로", 20, 12], ["선릉로길", 19, 12], ["도산대로", 13, 8], ["학동로", 10, 6], ["학동로길", 10, 6]]}, "잠실동": {"total": 23, "top_dests": [["올림픽로", 4, 17], ["봉은사로길", 3, 13], ["영동대로", 3, 13], ["삼성로", 2, 9], ["삼성로길", 2, 9], ["잠실로", 2, 9]]}, "잠원동": {"total": 47, "top_dests": [["강남대로길", 7, 15], ["잠원로", 5, 11], ["학동로길", 5, 11], ["언주로길", 4, 9], ["신반포로", 4, 9], ["나루터로길", 2, 4]]}, "개포동": {"total": 41, "top_dests": [["영동대로", 11, 27], ["개포로", 5, 12], ["삼성로", 5, 12], ["선릉로", 4, 10], ["개포로길", 3, 7], ["선릉로길", 3, 7]]}, "양재동": {"total": 13, "top_dests": [["남부순환로길", 2, 15], ["도곡로길", 2, 15], ["강남대로길", 1, 8], ["강남대로", 1, 8], ["서초중앙로", 1, 8], ["테헤란로길", 1, 8]]}, "일원동": {"total": 25, "top_dests": [["개포로길", 8, 32], ["삼성로", 6, 24], ["영동대로", 4, 16], ["일원로", 2, 8], ["개포로", 2, 8], ["삼성로길", 1, 4]]}, "압구정동": {"total": 8, "top_dests": [["압구정로", 3, 38], ["강남대로길", 1, 12], ["논현로길", 1, 12], ["도산대로", 1, 12], ["압구정로길", 1, 12], ["도산대로길", 1, 12]]}, "석촌동": {"total": 1, "top_dests": [["개포로길", 1, 100]]}, "삼전동": {"total": 3, "top_dests": [["백제고분로길", 1, 33], ["개포로길", 1, 33], ["영동대로길", 1, 33]]}}, "shops": [{"name": "B마트 강남논현", "cnt": 136, "avg_fee": 4552, "pickup_addr": "서울 강남구 언주로 609", "zone": "논현동"}, {"name": "B마트 강남압구정", "cnt": 119, "avg_fee": 4834, "pickup_addr": "서울 강남구 논현로 842", "zone": "신사동"}, {"name": "B마트 강남양재", "cnt": 71, "avg_fee": 5908, "pickup_addr": "서울 강남구 언주로 123", "zone": "도곡동"}, {"name": "이프유캔 Coffee&Dessert 강남본점", "cnt": 37, "avg_fee": 5231, "pickup_addr": "서울특별시 강남구 봉은사로33길 13", "zone": "논현동"}, {"name": "청담과 청담동1% 과일제작소", "cnt": 32, "avg_fee": 5298, "pickup_addr": "서울특별시 강남구 학동로68길 7", "zone": "삼성동"}, {"name": "매드피자 강남점", "cnt": 30, "avg_fee": 5631, "pickup_addr": "서울특별시 강남구 논현로102길 12", "zone": "역삼동"}, {"name": "청담각 짜장짬뽕전문점 강남본점", "cnt": 28, "avg_fee": 5113, "pickup_addr": "서울특별시 강남구 테헤란로39길 65", "zone": "역삼동"}, {"name": "롯데리아 학동역점", "cnt": 28, "avg_fee": 5208, "pickup_addr": "서울특별시 강남구 논현동 89-22", "zone": "논현동"}, {"name": "교촌치킨 강남역점", "cnt": 23, "avg_fee": 5490, "pickup_addr": "서울특별시 강남구 강남대로98길 11", "zone": "역삼동"}, {"name": "BHC 역삼점", "cnt": 22, "avg_fee": 4417, "pickup_addr": "서울특별시 강남구 논현로85길 52", "zone": "역삼동"}, {"name": "처갓집양념치킨 삼성점", "cnt": 20, "avg_fee": 5334, "pickup_addr": "서울특별시 강남구 삼성로103길 12", "zone": "삼성동"}, {"name": "BHC 선릉역점", "cnt": 18, "avg_fee": 5007, "pickup_addr": "서울특별시 강남구 선릉로82길 23", "zone": "대치동"}, {"name": "버거킹 청담점", "cnt": 18, "avg_fee": 5324, "pickup_addr": "서울특별시 강남구 선릉로 812", "zone": "청담동"}, {"name": "김치찜 팝니다 강남본점", "cnt": 18, "avg_fee": 5438, "pickup_addr": "서울특별시 강남구 테헤란로27길 23", "zone": "역삼동"}, {"name": "카페인중독 역삼점", "cnt": 18, "avg_fee": 5540, "pickup_addr": "서울특별시 강남구 봉은사로20길 46", "zone": "역삼동"}, {"name": "BHC 역삼푸르지오점", "cnt": 18, "avg_fee": 5542, "pickup_addr": "서울특별시 강남구 언주로69길 17", "zone": "역삼동"}, {"name": "롯데리아 선릉점", "cnt": 18, "avg_fee": 5350, "pickup_addr": "서울특별시 강남구 테헤란로 423", "zone": "삼성동"}, {"name": "한식의품격  강남논현점", "cnt": 17, "avg_fee": 5764, "pickup_addr": "서울특별시 강남구 봉은사로37길 7-14", "zone": "논현동"}, {"name": "스쿨푸드 딜리버리 논현압구정점", "cnt": 17, "avg_fee": 5634, "pickup_addr": "서울특별시 강남구 봉은사로37길 7-7", "zone": "논현동"}, {"name": "맥도날드 신사역점", "cnt": 17, "avg_fee": 5034, "pickup_addr": "서울특별시 강남구 도산대로 123", "zone": "신사동"}]};
+
+
+let map, markers=[], circles=[], currentHour=12, currentView='density';
+let shopGeo={}, shopLoaded=false;
+
+// 색상 팔레트
+const ZONE_COLORS = {
+  '역삼동':'#FF6B35','논현동':'#F59E0B','대치동':'#10B981',
+  '신사동':'#7F77DD','삼성동':'#EC4899','청담동':'#06B6D4',
+  '서초동':'#84CC16','도곡동':'#F97316','잠원동':'#A855F7',
+  '반포동':'#14B8A6','압구정동':'#EF4444','기타':'#888888',
+};
+function zoneColor(z){ return ZONE_COLORS[z]||'#888888'; }
+
+// 지도 초기화
+map = new naver.maps.Map('map',{
+  center: new naver.maps.LatLng(37.502,127.025),
+  zoom:13, scaleControl:false,
+});
+
+// 시간대 바 차트 렌더
+function renderHourChart(){
+  const maxCnt = Math.max(...Object.values(DATA.hour_summary).map(d=>d.total));
+  const el = document.getElementById('hour-chart');
+  el.innerHTML = Object.entries(DATA.hour_summary)
+    .sort((a,b)=>parseInt(a[0])-parseInt(b[0]))
+    .map(([h,d])=>`
+      <div class="bar-row ${parseInt(h)===currentHour?'active':''}" onclick="setHour(${h})">
+        <span class="bar-hour">${h}시</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${round(d.total/maxCnt*100)}%"></div></div>
+        <span class="bar-cnt">${d.total}</span>
+      </div>`).join('');
+}
+
+function round(v,n=0){ return Math.round(v*(10**n))/(10**n); }
+
+// 구역 리스트
+function renderZoneList(h){
+  const d = DATA.hour_summary[h];
+  if(!d){ document.getElementById('zone-list').innerHTML='<div style="color:#555;font-size:11px">데이터 없음</div>'; return; }
+  const maxCnt = Math.max(...d.zones.map(z=>z[1]));
+  document.getElementById('zone-list').innerHTML = d.zones.map(([zone,cnt])=>`
+    <div class="zone-item">
+      <div>
+        <div class="zone-name" style="color:${zoneColor(zone)}">${zone}</div>
+        <div class="zone-bar"><div class="zone-bar-fill" style="width:${round(cnt/maxCnt*100)}%;background:${zoneColor(zone)}"></div></div>
+      </div>
+      <div class="zone-cnt">${cnt}건</div>
+    </div>`).join('');
+}
+
+// 배달지 패턴
+function renderDestList(zone){
+  const d = DATA.zone_dest[zone];
+  if(!d){ document.getElementById('dest-list').innerHTML='<div style="color:#555;font-size:11px">구역 선택</div>'; return; }
+  document.getElementById('dest-list').innerHTML =
+    `<div style="font-size:10px;color:#555;margin-bottom:6px">${zone} 픽업 → 배달지</div>` +
+    d.top_dests.map(([dest,cnt,pct])=>`
+      <div class="dest-item">
+        <span class="dest-name">${dest}</span>
+        <span class="dest-pct">${pct}%</span>
+      </div>`).join('');
+}
+
+// 상태바
+function renderStatusBar(h){
+  const d = DATA.hour_summary[h];
+  if(!d) return;
+  const topZone = d.zones[0];
+  document.getElementById('stat-total').innerHTML = `${h}시~${parseInt(h)+1}시 <span>${d.total}건</span>`;
+  document.getElementById('stat-fee').innerHTML = `평균단가 <span>${d.avg_fee.toLocaleString()}원</span>`;
+  document.getElementById('stat-dist').innerHTML = `평균거리 <span>${d.avg_dist}km</span>`;
+  document.getElementById('stat-top').innerHTML = `최다구역 <span>${topZone?topZone[0]:'-'}</span>`;
+}
+
+// 지도 마커/서클 초기화
+function clearMap(){ markers.forEach(m=>m.setMap(null)); circles.forEach(c=>c.setMap(null)); markers=[];circles=[]; }
+
+// 콜 발생 히트맵 (구역 원형)
+const ZONE_CENTERS = {
+  '역삼동':[37.497,127.036],'논현동':[37.512,127.025],
+  '대치동':[37.494,127.049],'신사동':[37.521,127.018],
+  '삼성동':[37.514,127.050],'청담동':[37.524,127.050],
+  '서초동':[37.490,127.016],'도곡동':[37.483,127.047],
+  '잠원동':[37.511,127.003],'반포동':[37.503,127.003],
+  '압구정동':[37.527,127.028],
+};
+
+function drawDensity(h){
+  clearMap();
+  const d = DATA.hour_summary[h];
+  if(!d) return;
+  const maxCnt = Math.max(...d.zones.map(z=>z[1]));
+  d.zones.forEach(([zone,cnt])=>{
+    const center = ZONE_CENTERS[zone];
+    if(!center) return;
+    const ratio = cnt/maxCnt;
+    const radius = 200 + ratio*600;
+    const color = zoneColor(zone);
+    const circle = new naver.maps.Circle({
+      map, center: new naver.maps.LatLng(center[0],center[1]),
+      radius, fillColor:color, fillOpacity:0.15+ratio*0.4,
+      strokeColor:color, strokeWeight:2, strokeOpacity:0.6,
+    });
+    const marker = new naver.maps.Marker({
+      map, position: new naver.maps.LatLng(center[0],center[1]),
+      icon:{
+        content:`<div style="background:rgba(15,15,15,0.9);border:1px solid ${color};border-radius:8px;padding:4px 8px;text-align:center;white-space:nowrap;">
+          <div style="font-size:11px;font-weight:700;color:${color}">${zone}</div>
+          <div style="font-size:13px;font-weight:800;color:#fff">${cnt}건</div>
+          <div style="font-size:10px;color:#888">${round(cnt/d.total*100)}%</div>
+        </div>`,
+        anchor: new naver.maps.Point(40,20),
+      }
+    });
+    naver.maps.Event.addListener(marker,'click',()=>renderDestList(zone));
+    circles.push(circle);
+    markers.push(marker);
+  });
+}
+
+// 상점 마커
+function gc(addr){ return new Promise((res,rej)=>{ naver.maps.Service.geocode({query:addr},(st,resp)=>{ if(st!==naver.maps.Service.Status.OK){rej();return;} const it=resp.v2.addresses; if(!it||!it.length){rej();return;} res({lat:parseFloat(it[0].y),lng:parseFloat(it[0].x)}); }); }); }
+
+async function drawShops(){
+  clearMap();
+  if(!shopLoaded){
+    document.getElementById('loading').style.display='flex';
+    let done=0;
+    for(const shop of DATA.shops){
+      try{
+        if(!shopGeo[shop.name]) shopGeo[shop.name]=await gc(shop.pickup_addr);
+      }catch(e){}
+      done++;
+      document.getElementById('loading-bar').style.width=(done/DATA.shops.length*100)+'%';
+      await new Promise(r=>setTimeout(r,60));
+    }
+    shopLoaded=true;
+    document.getElementById('loading').style.display='none';
+  }
+  DATA.shops.forEach(shop=>{
+    const geo=shopGeo[shop.name];
+    if(!geo) return;
+    const color=zoneColor(shop.zone);
+    const sz=Math.max(14,Math.min(30,Math.round(shop.cnt/5)));
+    const m=new naver.maps.Marker({
+      map, position:new naver.maps.LatLng(geo.lat,geo.lng),
+      icon:{
+        content:`<div style="background:${color};border:2px solid #fff;border-radius:50%;width:${sz}px;height:${sz}px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.4)">${shop.cnt}</div>`,
+        anchor:new naver.maps.Point(sz/2,sz/2),
+      }
+    });
+    const iw=new naver.maps.InfoWindow({
+      content:`<div style="background:#1a1a1a;border:1px solid ${color};border-radius:8px;padding:8px 12px;min-width:150px;">
+        <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:4px">${shop.name}</div>
+        <div style="font-size:11px;color:#aaa">${shop.zone}</div>
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-top:4px">${shop.cnt}건</div>
+        <div style="font-size:11px;color:#888">평균 ${shop.avg_fee.toLocaleString()}원</div>
+      </div>`,
+      borderColor:'transparent',backgroundColor:'transparent',borderWidth:0,disableAnchor:true,
+    });
+    naver.maps.Event.addListener(m,'click',()=>{ markers.filter(x=>x._iw).forEach(x=>x._iw.close()); iw.open(map,m); m._iw=iw; });
+    m._iw=null; markers.push(m);
+  });
+}
+
+// 단가 히트맵
+function drawFee(h){
+  clearMap();
+  const d=DATA.hour_summary[h];
+  if(!d) return;
+  const maxFee=Math.max(...d.zones.map(z=>z[1]));
+  d.zones.forEach(([zone,cnt])=>{
+    const center=ZONE_CENTERS[zone];
+    if(!center) return;
+    const zd=DATA.zone_dest[zone];
+    const color=zoneColor(zone);
+    const circle=new naver.maps.Circle({
+      map,center:new naver.maps.LatLng(center[0],center[1]),
+      radius:300+cnt/maxFee*500,
+      fillColor:color,fillOpacity:0.2,strokeColor:color,strokeWeight:1.5,strokeOpacity:0.5,
+    });
+    circles.push(circle);
+  });
+}
+
+// 배달지 마커
+function drawDest(h){
+  clearMap();
+  const d=DATA.hour_summary[h];
+  if(!d) return;
+  // 주요 구역에서 배달지 패턴 표시
+  const topZones=d.zones.slice(0,4);
+  topZones.forEach(([zone])=>{
+    const zd=DATA.zone_dest[zone];
+    if(!zd) return;
+    const color=zoneColor(zone);
+    const pickCenter=ZONE_CENTERS[zone];
+    if(!pickCenter) return;
+    // 픽업지 마커
+    markers.push(new naver.maps.Marker({
+      map,position:new naver.maps.LatLng(pickCenter[0],pickCenter[1]),
+      icon:{
+        content:`<div style="background:transparent;border:3px solid ${color};border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:9px;color:${color};font-weight:700;">픽</div>`,
+        anchor:new naver.maps.Point(12,12),
+      }
+    }));
+    // 배달지 라벨
+    zd.top_dests.slice(0,3).forEach(([dest,cnt,pct],i)=>{
+      const marker=new naver.maps.Marker({
+        map,position:new naver.maps.LatLng(pickCenter[0]-0.005*(i+1),pickCenter[1]+0.008*(i%2===0?1:-1)),
+        icon:{
+          content:`<div style="background:rgba(15,15,15,0.9);border:1px solid ${color};border-radius:6px;padding:3px 7px;white-space:nowrap;font-size:10px;color:${color}">${dest} ${pct}%</div>`,
+          anchor:new naver.maps.Point(0,10),
+        }
+      });
+      markers.push(marker);
+    });
+  });
+}
+
+function setView(view){
+  currentView=view;
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',['density','dest','shops','fee'][i]===view);
+  });
+  render();
+}
+
+function render(){
+  if(currentView==='density') drawDensity(currentHour);
+  else if(currentView==='dest') drawDest(currentHour);
+  else if(currentView==='shops') drawShops();
+  else if(currentView==='fee') drawFee(currentHour);
+  renderZoneList(currentHour);
+  renderStatusBar(currentHour);
+}
+
+function setHour(h){
+  currentHour=parseInt(h);
+  document.getElementById('time-slider').value=h;
+  document.getElementById('time-label').textContent=`${h}시~${parseInt(h)+1}시`;
+  renderHourChart();
+  render();
+}
+
+function onTimeSlider(val){
+  setHour(parseInt(val));
+}
+
+naver.maps.Event.addListener(map,'init',()=>{
+  renderHourChart();
+  renderZoneList(currentHour);
+  renderDestList('역삼동');
+  renderStatusBar(currentHour);
+  drawDensity(currentHour);
+});
+setTimeout(()=>{
+  renderHourChart();
+  renderZoneList(currentHour);
+  renderDestList('역삼동');
+  renderStatusBar(currentHour);
+  drawDensity(currentHour);
+},600);
+</script>
+</body>
+</html>
